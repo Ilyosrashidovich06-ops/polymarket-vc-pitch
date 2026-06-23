@@ -1,6 +1,5 @@
 import streamlit as st
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 import requests
 from datetime import datetime
@@ -12,444 +11,218 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 * { font-family: 'Inter', sans-serif; }
-
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: #07070f;
-    color: #ffffff;
-}
-[data-testid="stHeader"] { background: rgba(7,7,15,0.95); }
+html, body, [data-testid="stAppViewContainer"] { background-color: #07070f; color: #ffffff; }
+[data-testid="stHeader"] { background: rgba(7,7,15,0.97); }
 [data-testid="stSidebar"] { background: #0d0d1a; }
-
-/* Remove default padding */
 .block-container { padding: 0 2rem 4rem 2rem; max-width: 1400px; margin: auto; }
 
-/* Hero */
-.hero {
-    background: linear-gradient(135deg, #0d0d2b 0%, #1a0533 50%, #001a3d 100%);
-    border: 1px solid rgba(0,212,255,0.15);
-    border-radius: 24px;
-    padding: 80px 60px;
-    margin: 30px 0;
-    position: relative;
-    overflow: hidden;
-    text-align: center;
+.cover {
+    background: linear-gradient(135deg, #0a0a20 0%, #1a0533 40%, #001a3d 100%);
+    border: 1px solid rgba(0,212,255,0.12); border-radius: 24px;
+    padding: 64px 60px 56px; margin: 24px 0 40px;
+    position: relative; overflow: hidden; text-align: center;
 }
-.hero::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 30% 50%, rgba(124,58,237,0.2) 0%, transparent 60%),
-                radial-gradient(ellipse at 70% 50%, rgba(0,212,255,0.15) 0%, transparent 60%);
+.cover::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 25% 60%, rgba(124,58,237,0.18) 0%, transparent 55%),
+                radial-gradient(ellipse at 75% 40%, rgba(0,212,255,0.12) 0%, transparent 55%);
 }
-.hero-badge {
-    display: inline-block;
-    background: rgba(0,212,255,0.1);
-    border: 1px solid rgba(0,212,255,0.4);
-    border-radius: 50px;
-    padding: 6px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #00d4ff;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 24px;
-}
-.hero h1 {
-    font-size: clamp(42px, 6vw, 80px);
-    font-weight: 900;
-    line-height: 1.05;
-    margin: 0 0 20px;
-    background: linear-gradient(135deg, #ffffff 0%, #00d4ff 50%, #7c3aed 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.hero-sub {
-    font-size: 22px;
-    color: rgba(255,255,255,0.7);
-    max-width: 700px;
-    margin: 0 auto 40px;
-    font-weight: 400;
-    line-height: 1.5;
-}
+.cover-university { font-size:13px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-bottom:5px; }
+.cover-module { font-size:14px; color:rgba(255,255,255,0.38); margin-bottom:30px; }
+.cover-badge { display:inline-block; background:rgba(0,212,255,0.1); border:1px solid rgba(0,212,255,0.35); border-radius:50px; padding:6px 20px; font-size:12px; font-weight:700; color:#00d4ff; letter-spacing:2px; text-transform:uppercase; margin-bottom:22px; }
+.cover h1 { font-size:clamp(34px,5vw,68px); font-weight:900; line-height:1.05; margin:0 0 22px; background:linear-gradient(135deg,#ffffff 0%,#00d4ff 50%,#7c3aed 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.cover-sub { font-size:19px; color:rgba(255,255,255,0.62); max-width:660px; margin:0 auto 36px; line-height:1.55; }
+.cover-authors { display:flex; justify-content:center; gap:36px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.08); padding-top:28px; margin-top:8px; }
+.cover-author-name { font-size:16px; font-weight:700; color:#fff; }
+.cover-author-id { font-size:12px; color:rgba(255,255,255,0.42); margin-top:2px; }
+.cover-prof { font-size:14px; color:rgba(255,255,255,0.5); margin-top:3px; }
 
-/* Stats row */
-.stat-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 28px 24px;
-    text-align: center;
-    transition: all 0.3s;
-}
-.stat-card:hover {
-    border-color: rgba(0,212,255,0.4);
-    background: rgba(0,212,255,0.06);
-    transform: translateY(-4px);
-}
-.stat-number { font-size: 42px; font-weight: 800; color: #00d4ff; line-height: 1; }
-.stat-label { font-size: 14px; color: rgba(255,255,255,0.55); margin-top: 8px; font-weight: 500; }
+.stat-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:24px 18px; text-align:center; transition:all 0.3s; }
+.stat-card:hover { border-color:rgba(0,212,255,0.32); background:rgba(0,212,255,0.05); transform:translateY(-3px); }
+.stat-number { font-size:36px; font-weight:800; color:#00d4ff; line-height:1; }
+.stat-label { font-size:12px; color:rgba(255,255,255,0.48); margin-top:8px; font-weight:500; }
 
-/* Section headers */
-.section-tag {
-    display: inline-block;
-    background: rgba(124,58,237,0.15);
-    border: 1px solid rgba(124,58,237,0.4);
-    border-radius: 50px;
-    padding: 4px 16px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #a78bfa;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-}
-.section-title {
-    font-size: clamp(28px, 4vw, 48px);
-    font-weight: 800;
-    line-height: 1.1;
-    margin: 0 0 8px;
-}
-.section-sub { font-size: 18px; color: rgba(255,255,255,0.55); margin-bottom: 40px; }
+.section-tag { display:inline-block; background:rgba(124,58,237,0.14); border:1px solid rgba(124,58,237,0.35); border-radius:50px; padding:4px 16px; font-size:11px; font-weight:700; color:#a78bfa; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; }
+.section-title { font-size:clamp(24px,3.5vw,44px); font-weight:800; line-height:1.1; margin:0 0 6px; }
+.section-sub { font-size:16px; color:rgba(255,255,255,0.5); margin-bottom:34px; line-height:1.5; }
 
-/* Cards */
-.card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 32px;
-    height: 100%;
-    transition: all 0.3s;
-}
-.card:hover {
-    border-color: rgba(0,212,255,0.3);
-    background: rgba(0,212,255,0.04);
-}
+.card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:30px; transition:all 0.3s; }
+.card:hover { border-color:rgba(0,212,255,0.26); background:rgba(0,212,255,0.04); }
 
-/* Trade cards */
-.trade-card {
-    background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(124,58,237,0.05));
-    border: 1px solid rgba(0,212,255,0.2);
-    border-radius: 20px;
-    padding: 28px;
-    margin-bottom: 16px;
-    position: relative;
-    overflow: hidden;
-}
-.trade-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, #00d4ff, #7c3aed);
-    border-radius: 4px 0 0 4px;
-}
-.trade-category {
-    font-size: 11px;
-    font-weight: 700;
-    color: #00d4ff;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-}
-.trade-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
-.trade-volume { font-size: 28px; font-weight: 800; color: #00ff88; }
-.trade-desc { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6; margin-top: 12px; }
+.trade-card { background:linear-gradient(135deg,rgba(0,212,255,0.04),rgba(124,58,237,0.04)); border:1px solid rgba(0,212,255,0.18); border-radius:18px; padding:24px; margin-bottom:12px; position:relative; overflow:hidden; }
+.trade-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:linear-gradient(180deg,#00d4ff,#7c3aed); border-radius:4px 0 0 4px; }
+.trade-category { font-size:11px; font-weight:700; color:#00d4ff; letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+.trade-title { font-size:17px; font-weight:700; margin-bottom:10px; }
+.trade-volume { font-size:24px; font-weight:800; color:#00ff88; }
+.trade-desc { font-size:13px; color:rgba(255,255,255,0.58); line-height:1.65; margin-top:10px; }
 
-/* Founder card */
-.founder-card {
-    background: linear-gradient(135deg, #0d0d2b, #1a0533);
-    border: 1px solid rgba(124,58,237,0.3);
-    border-radius: 24px;
-    padding: 40px;
-    display: flex;
-    align-items: center;
-    gap: 40px;
-}
-.founder-name { font-size: 36px; font-weight: 800; margin-bottom: 8px; }
-.founder-title { color: #00d4ff; font-size: 16px; font-weight: 600; margin-bottom: 20px; }
-.founder-bio { font-size: 16px; color: rgba(255,255,255,0.7); line-height: 1.7; }
+.investor-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); border-radius:16px; padding:22px; text-align:center; transition:all 0.3s; }
+.investor-card:hover { border-color:rgba(0,212,255,0.32); transform:translateY(-4px); }
+.investor-name { font-size:17px; font-weight:700; margin-bottom:5px; }
+.investor-role { font-size:12px; color:rgba(255,255,255,0.42); margin-bottom:12px; }
+.investor-signal { font-size:13px; color:#00d4ff; background:rgba(0,212,255,0.08); border-radius:8px; padding:8px 12px; line-height:1.5; }
 
-/* Investor cards */
-.investor-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px;
-    padding: 24px;
-    text-align: center;
-    transition: all 0.3s;
-}
-.investor-card:hover {
-    border-color: rgba(0,212,255,0.4);
-    transform: translateY(-4px);
-}
-.investor-name { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-.investor-role { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 12px; }
-.investor-signal {
-    font-size: 13px;
-    color: #00d4ff;
-    background: rgba(0,212,255,0.1);
-    border-radius: 8px;
-    padding: 8px 12px;
-    line-height: 1.5;
-}
+.risk-high { color:#ff4757; background:rgba(255,71,87,0.1); border:1px solid rgba(255,71,87,0.3); }
+.risk-med  { color:#ffa502; background:rgba(255,165,2,0.1);  border:1px solid rgba(255,165,2,0.3); }
+.risk-low  { color:#00ff88; background:rgba(0,255,136,0.1);  border:1px solid rgba(0,255,136,0.3); }
+.risk-pill { display:inline-block; border-radius:50px; padding:4px 14px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
 
-/* Timeline */
-.timeline-item {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 32px;
-    align-items: flex-start;
-}
-.timeline-dot {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #00d4ff, #7c3aed);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-    font-weight: 800;
-}
-.timeline-content { flex: 1; padding-top: 8px; }
-.timeline-year { font-size: 12px; color: #00d4ff; font-weight: 700; letter-spacing: 2px; }
-.timeline-title { font-size: 20px; font-weight: 700; margin: 4px 0; }
-.timeline-desc { font-size: 14px; color: rgba(255,255,255,0.6); }
+.reco-box { background:linear-gradient(135deg,rgba(0,255,136,0.05),rgba(0,212,255,0.05)); border:2px solid rgba(0,255,136,0.28); border-radius:24px; padding:48px; text-align:center; }
+.reco-verdict { font-size:48px; font-weight:900; background:linear-gradient(135deg,#00ff88,#00d4ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:16px; }
 
-/* Risk pill */
-.risk-high { color: #ff4757; background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); }
-.risk-med { color: #ffa502; background: rgba(255,165,2,0.1); border: 1px solid rgba(255,165,2,0.3); }
-.risk-low { color: #00ff88; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); }
-.risk-pill {
-    display: inline-block;
-    border-radius: 50px;
-    padding: 4px 14px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
+.live-card { background:rgba(0,255,136,0.04); border:1px solid rgba(0,255,136,0.18); border-radius:14px; padding:16px 20px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+.live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#00ff88; margin-right:8px; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+.probability-bar { height:7px; border-radius:4px; background:rgba(255,255,255,0.08); margin-top:8px; overflow:hidden; }
+.probability-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#7c3aed,#00d4ff); }
 
-/* Recommendation box */
-.reco-box {
-    background: linear-gradient(135deg, rgba(0,255,136,0.05), rgba(0,212,255,0.05));
-    border: 2px solid rgba(0,255,136,0.3);
-    border-radius: 24px;
-    padding: 48px;
-    text-align: center;
-}
-.reco-verdict {
-    font-size: 52px;
-    font-weight: 900;
-    background: linear-gradient(135deg, #00ff88, #00d4ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 16px;
-}
+.tl-item { display:flex; gap:18px; margin-bottom:24px; }
+.tl-dot { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; flex-shrink:0; color:white; }
+.tl-content { flex:1; padding-top:4px; }
+.tl-year { font-size:11px; color:#00d4ff; font-weight:700; letter-spacing:2px; }
+.tl-desc { font-size:13px; color:rgba(255,255,255,0.6); line-height:1.55; margin-top:2px; }
 
-/* Live market card */
-.live-card {
-    background: rgba(0,255,136,0.04);
-    border: 1px solid rgba(0,255,136,0.2);
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.live-dot {
-    display: inline-block;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #00ff88;
-    margin-right: 8px;
-    animation: pulse 2s infinite;
-}
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-.probability-bar {
-    height: 8px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.1);
-    margin-top: 8px;
-    overflow: hidden;
-}
-.probability-fill {
-    height: 100%;
-    border-radius: 4px;
-    background: linear-gradient(90deg, #7c3aed, #00d4ff);
-}
+.chip { display:inline-block; border-radius:50px; padding:7px 18px; font-size:13px; font-weight:600; margin:4px; }
+.chip-blue   { background:rgba(0,212,255,0.12); border:1px solid rgba(0,212,255,0.3); color:#00d4ff; }
+.chip-purple { background:rgba(124,58,237,0.12); border:1px solid rgba(124,58,237,0.3); color:#a78bfa; }
+.chip-green  { background:rgba(0,255,136,0.12); border:1px solid rgba(0,255,136,0.3); color:#00ff88; }
 
-/* Nav tabs */
-.nav-container {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(7,7,15,0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 12px 0;
-    margin-bottom: 40px;
-}
-
-/* Divider */
-.divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 60px 0; }
+.divider { border:none; border-top:1px solid rgba(255,255,255,0.06); margin:52px 0; }
+.info-box { background:rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.22); border-radius:14px; padding:18px 22px; margin-top:14px; }
 </style>
 """, unsafe_allow_html=True)
 
-
-# ── Sidebar navigation ─────────────────────────────────────────────────────────
+# ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### Navigation")
-    sections = [
-        "🏠 Home", "🧠 What is Polymarket?", "🧑‍💻 The Founder",
-        "🔥 Iconic Trades", "📈 Trading Volume", "💰 Funding History",
+    st.radio("Go to", [
+        "🏠 Cover", "📖 What Is Polymarket?", "🕰️ History",
+        "🧑‍💻 The Founder", "⛓️ Technology", "🔥 Iconic Trades",
+        "📈 Volume Growth", "💼 Business Model", "💰 Funding",
         "🤝 Investors", "🌍 Market Opportunity", "⚔️ Competition",
-        "⚠️ Risks", "✅ Investment Thesis", "📡 Live Markets"
-    ]
-    selected = st.radio("Go to", sections, label_visibility="collapsed")
+        "📊 SWOT", "⚠️ Risks", "✅ Investment Thesis", "📡 Live Markets",
+    ], label_visibility="collapsed")
     st.markdown("---")
-    st.markdown("**Prepared by**")
-    st.markdown("Leon Ye · Ilyos Umurzakov")
-    st.markdown("Frankfurt UAS · June 2026")
-    st.markdown("*English for Presentations*")
+    st.markdown("**Leon Ye** · 1616910")
+    st.markdown("**Ilyos Umurzakov** · 1615067")
+    st.markdown("Prof. James Slawney")
+    st.markdown("Frankfurt UAS · SS 2026")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 1. HERO
+# COVER
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown("""
-<div class="hero">
-  <div class="hero-badge">VC Pitch Deck · 2026</div>
-  <h1>The World Bets on<br>Everything — Invest in<br>the Exchange</h1>
-  <p class="hero-sub">
-    Polymarket is turning human uncertainty into a tradeable asset class.
-    $9 billion valuation. NYSE-backed. The most accurate forecasting tool on earth.
+<div class="cover">
+  <div class="cover-university">Frankfurt University of Applied Sciences &nbsp;·&nbsp; Faculty 3 – Business and Law</div>
+  <div class="cover-module">Module: English for Presentations &nbsp;|&nbsp; Summer Semester 2026 &nbsp;|&nbsp; Prof. James Slawney</div>
+  <div class="cover-badge">VC Pitch Deck · 2026</div>
+  <h1>Polymarket as a Venture Capital<br>Investment Opportunity</h1>
+  <p class="cover-sub">
+    A blockchain-native prediction market that turned human uncertainty into
+    the world's most accurate forecasting engine — and a $9 billion company.
   </p>
-  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-    <span style="background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.3);border-radius:50px;padding:10px 24px;font-size:14px;font-weight:600;color:#00d4ff;">
-      🔮 Blockchain-Native
-    </span>
-    <span style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:50px;padding:10px 24px;font-size:14px;font-weight:600;color:#a78bfa;">
-      📊 $9B Valuation
-    </span>
-    <span style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);border-radius:50px;padding:10px 24px;font-size:14px;font-weight:600;color:#00ff88;">
-      ✅ NYSE Investor
-    </span>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:36px;">
+    <span class="chip chip-blue">🔮 Blockchain-Native</span>
+    <span class="chip chip-purple">📊 $9B Valuation</span>
+    <span class="chip chip-green">✅ NYSE-Backed</span>
+    <span class="chip chip-blue">🌍 445K+ Active Traders</span>
+  </div>
+  <div class="cover-authors">
+    <div style="text-align:center;">
+      <div class="cover-author-name">Leon Ye</div>
+      <div class="cover-author-id">Matriculation No. 1616910</div>
+    </div>
+    <div style="border-left:1px solid rgba(255,255,255,0.12);"></div>
+    <div style="text-align:center;">
+      <div class="cover-author-name">Ilyos Umurzakov</div>
+      <div class="cover-author-id">Matriculation No. 1615067</div>
+    </div>
+    <div style="border-left:1px solid rgba(255,255,255,0.12);"></div>
+    <div style="text-align:center;">
+      <div class="cover-prof">Supervisor: Prof. James Slawney</div>
+      <div class="cover-prof">Submitted: 5 June 2026 · Frankfurt am Main</div>
+    </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Key stats ──────────────────────────────────────────────────────────────────
 c1, c2, c3, c4, c5 = st.columns(5)
-stats = [
-    ("$9B", "Post-ICE Valuation"),
-    ("$3.7B+", "2024 Election Volume"),
-    ("445K+", "Active Traders (Oct 2025)"),
-    ("$74M+", "Total VC Raised"),
-    ("#1", "Global Prediction Market"),
-]
-for col, (num, label) in zip([c1, c2, c3, c4, c5], stats):
+for col, (num, lbl) in zip([c1,c2,c3,c4,c5], [
+    ("$9B","Post-ICE Valuation"), ("$3.7B+","2024 Election Volume"),
+    ("445K+","Active Traders Oct'25"), ("$74M+","Total VC Raised"), ("#1","Global Prediction Market"),
+]):
     with col:
-        st.markdown(f"""
-        <div class="stat-card">
-          <div class="stat-number">{num}</div>
-          <div class="stat-label">{label}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-card"><div class="stat-number">{num}</div><div class="stat-label">{lbl}</div></div>', unsafe_allow_html=True)
 
 st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 2. WHAT IS POLYMARKET?
+# 1 · WHAT IS POLYMARKET?
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-tag">What Is Polymarket?</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title">Probability, Priced in Real Time</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-sub">A blockchain-powered prediction market where contracts track real-world outcomes — and prices reveal what the crowd <em>actually</em> believes.</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">A blockchain-powered marketplace where event contracts trade like stocks — prices reveal what the crowd <em>actually</em> believes.</div>', unsafe_allow_html=True)
 
 col_l, col_r = st.columns([1.1, 1])
 with col_l:
     st.markdown("""
     <div class="card">
-      <h3 style="font-size:24px;font-weight:700;margin-bottom:20px;">How It Works</h3>
-      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:24px;">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(0,212,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">❓</div>
-        <div>
-          <div style="font-weight:600;margin-bottom:4px;">A question gets listed</div>
-          <div style="color:rgba(255,255,255,0.6);font-size:14px;">"Will Trump win the 2024 election?" — YES or NO contracts go live.</div>
-        </div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:18px;">How It Works — Step by Step</div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:20px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,212,255,0.14);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">❓</div>
+        <div><div style="font-weight:600;margin-bottom:3px;">A real-world question gets listed</div>
+        <div style="color:rgba(255,255,255,0.56);font-size:13px;">"Will Trump win the 2024 election?" — YES and NO contracts go live instantly on-chain.</div></div>
       </div>
-      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:24px;">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(124,58,237,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💱</div>
-        <div>
-          <div style="font-weight:600;margin-bottom:4px;">Traders buy and sell with USDC</div>
-          <div style="color:rgba(255,255,255,0.6);font-size:14px;">A contract at $0.72 = 72% market-implied probability. Settled on-chain via Polygon.</div>
-        </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:20px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.14);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">💱</div>
+        <div><div style="font-weight:600;margin-bottom:3px;">Traders buy and sell with USDC</div>
+        <div style="color:rgba(255,255,255,0.56);font-size:13px;">A YES contract at $0.72 implies <strong>72% probability</strong>. Price moves with every trade — continuously reflecting collective belief.</div></div>
       </div>
-      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:24px;">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(0,255,136,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">✅</div>
-        <div>
-          <div style="font-weight:600;margin-bottom:4px;">Event resolves</div>
-          <div style="color:rgba(255,255,255,0.6);font-size:14px;">Winners get $1 per contract. Losers get $0. Instant, transparent, tamper-proof.</div>
-        </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:20px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,255,136,0.14);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">✅</div>
+        <div><div style="font-weight:600;margin-bottom:3px;">Event resolves — winners paid on-chain</div>
+        <div style="color:rgba(255,255,255,0.56);font-size:13px;">Winners receive $1.00 per contract. Losers get $0. Settlement instant, transparent, tamper-proof via smart contract.</div></div>
       </div>
-      <div style="display:flex;gap:16px;align-items:flex-start;">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(255,165,2,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📡</div>
-        <div>
-          <div style="font-weight:600;margin-bottom:4px;">Prices become information</div>
-          <div style="color:rgba(255,255,255,0.6);font-size:14px;">CNN, Reuters, and the FT quote Polymarket odds. It's not gambling — it's a forecasting layer for the internet.</div>
-        </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,165,2,0.14);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">📡</div>
+        <div><div style="font-weight:600;margin-bottom:3px;">Prices become a public intelligence feed</div>
+        <div style="color:rgba(255,255,255,0.56);font-size:13px;">CNN, Reuters, the FT, BBC quote Polymarket odds daily. It is no longer gambling — it is a <strong>live forecasting layer for the internet</strong>.</div></div>
       </div>
     </div>
     """, unsafe_allow_html=True)
 
 with col_r:
-    # Simple animated gauge chart showing an example market
     fig_gauge = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=72,
-        title={"text": "Trump wins 2024 election?<br><span style='font-size:14px;color:#aaa'>Polymarket peaked at 72%</span>",
-               "font": {"color": "white", "size": 16}},
-        number={"suffix": "% YES", "font": {"color": "#00d4ff", "size": 40}},
+        mode="gauge+number", value=72,
+        title={"text": "Trump wins 2024 election?<br><span style='font-size:12px;color:#aaa'>Polymarket: 72% · Polls: 50/50</span>",
+               "font": {"color": "white", "size": 14}},
+        number={"suffix": "% YES", "font": {"color": "#00d4ff", "size": 36}},
         gauge={
-            "axis": {"range": [0, 100], "tickcolor": "rgba(255,255,255,0.3)"},
-            "bar": {"color": "#00d4ff", "thickness": 0.3},
-            "bgcolor": "rgba(255,255,255,0.05)",
-            "borderwidth": 0,
+            "axis": {"range": [0, 100]},
+            "bar": {"color": "#00d4ff", "thickness": 0.28},
+            "bgcolor": "rgba(255,255,255,0.04)", "borderwidth": 0,
             "threshold": {"line": {"color": "#00ff88", "width": 3}, "value": 72},
-            "steps": [
-                {"range": [0, 50], "color": "rgba(255,71,87,0.15)"},
-                {"range": [50, 100], "color": "rgba(0,212,255,0.1)"},
-            ],
+            "steps": [{"range": [0,50], "color": "rgba(255,71,87,0.1)"},
+                      {"range": [50,100], "color": "rgba(0,212,255,0.07)"}],
         },
     ))
     fig_gauge.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        height=300,
-        font={"color": "white"},
-        margin=dict(t=60, b=20, l=20, r=20),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        height=280, font={"color": "white"}, margin=dict(t=60, b=10, l=20, r=20),
     )
     st.plotly_chart(fig_gauge, use_container_width=True)
-
     st.markdown("""
-    <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);border-radius:16px;padding:20px;margin-top:-10px;">
-      <div style="font-size:13px;color:#00ff88;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Why this matters</div>
-      <div style="font-size:15px;color:rgba(255,255,255,0.8);line-height:1.6;">
-        Polymarket's 72% odds on Trump <strong>outpaced every major poll</strong>
-        showing a 50/50 race. Crowds with skin in the game are smarter than pundits.
+    <div class="info-box">
+      <div style="font-size:12px;color:#00ff88;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;">Why This Matters</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.72);line-height:1.6;">
+        Polymarket's 72% odds on Trump outpaced <strong>every major poll</strong> showing a 50/50 race.
+        Financial incentives produce truthful information. That is the core product insight.
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -458,76 +231,113 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3. FOUNDER
+# 2 · HISTORY
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-tag">History</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Prediction Markets Are Not New — But Polymarket Made Them Massive</div>', unsafe_allow_html=True)
+
+col_h1, col_h2 = st.columns([1, 1.1])
+with col_h1:
+    for year, icon, color, desc in [
+        ("1988","🏛️","#7c3aed","Iowa Electronic Markets (IEM) launched by University of Iowa. First academic prediction market. Correctly forecast 6 of 7 presidential elections — outperforming all major polls."),
+        ("2000s","💻","#00d4ff","Intrade emerges as dominant prediction market. Used by traders, hedge funds, media. Shuts down in 2013 under CFTC pressure — leaving a massive vacuum."),
+        ("2015","🧪","#a78bfa","Augur launches as the first decentralised prediction market on Ethereum. Pioneering concept, but too complex for mainstream users. Volume never scales."),
+        ("2020","🚀","#00ff88","Shayne Coplan founds Polymarket. Binary contracts + USDC + Polygon speed = the product prediction markets had been waiting for."),
+        ("2024","⚡","#ffa502","2024 US election generates $3.7B in a single quarter. Polymarket becomes the world's most-cited probability source. NYT, CNN, BBC all embed its odds."),
+        ("2025","🏛️","#00d4ff","NYSE parent ICE invests $2B at $9B valuation. Polymarket re-enters the US via QCEX acquisition. The institutional era begins."),
+    ]:
+        st.markdown(f"""
+        <div class="tl-item">
+          <div class="tl-dot" style="background:linear-gradient(135deg,{color},{color}77);">{icon}</div>
+          <div class="tl-content">
+            <div class="tl-year">{year}</div>
+            <div class="tl-desc">{desc}</div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+with col_h2:
+    fig_acc = go.Figure(go.Bar(
+        x=[87, 79, 83, 91],
+        y=["Iowa IEM (1988–2012)", "Gallup Polls", "FiveThirtyEight Models", "Polymarket (2020–2024)"],
+        orientation="h",
+        marker=dict(color=["#7c3aed","#555","#777","#00d4ff"],
+                    line=dict(color="rgba(255,255,255,0.07)", width=1)),
+        text=["87%","79%","83%","91%"],
+        textposition="outside", textfont=dict(color="white", size=12),
+        hovertemplate="<b>%{y}</b><br>Accuracy: %{x}%<extra></extra>",
+    ))
+    fig_acc.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=260,
+        title=dict(text="Election Forecast Accuracy (Historical)", font=dict(color="white", size=13), x=0),
+        xaxis=dict(range=[70,100], tickfont=dict(color="rgba(255,255,255,0.45)"),
+                   gridcolor="rgba(255,255,255,0.06)"),
+        yaxis=dict(tickfont=dict(color="rgba(255,255,255,0.72)", size=11)),
+        margin=dict(t=36, b=20, l=10, r=55),
+        font=dict(family="Inter", color="white"),
+    )
+    st.plotly_chart(fig_acc, use_container_width=True)
+
+    st.markdown("""
+    <div class="card" style="padding:22px;margin-top:4px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;">The Academic Foundation</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.62);line-height:1.7;">
+        <strong style="color:#00d4ff;">Hayek (1945)</strong> — Prices aggregate dispersed private information better than any central planner.<br><br>
+        <strong style="color:#a78bfa;">Surowiecki (2004)</strong> — <em>The Wisdom of Crowds</em>: diverse groups with skin in the game outperform experts.<br><br>
+        <strong style="color:#00ff88;">Berg et al. (2008)</strong> — IEM outperformed polls in 74% of US elections over 20 years.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 3 · FOUNDER
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-tag">The Founder</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title">Shayne Coplan — Built a Billion by 27</div>', unsafe_allow_html=True)
 
-col_f1, col_f2 = st.columns([1, 2])
+col_f1, col_f2 = st.columns([1, 2.1])
 with col_f1:
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Shayne_Coplan_2024.jpg/440px-Shayne_Coplan_2024.jpg",
-        caption="Shayne Coplan, CEO & Founder",
-        use_container_width=True,
-    )
+    try:
+        st.image("shayne_coplan.webp", caption="Shayne Coplan — CEO & Founder, Polymarket", use_container_width=True)
+    except Exception:
+        st.markdown('<div style="background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:60px 20px;text-align:center;font-size:60px;">👤</div>', unsafe_allow_html=True)
+
 with col_f2:
     st.markdown("""
     <div class="card" style="height:auto;">
-      <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;">
-        <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:12px;padding:12px 20px;text-align:center;">
-          <div style="font-size:28px;font-weight:800;color:#00d4ff;">27</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.5);">Years Old</div>
+      <div style="display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;">
+        <div style="background:rgba(0,212,255,0.09);border:1px solid rgba(0,212,255,0.22);border-radius:12px;padding:12px 16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#00d4ff;">27</div><div style="font-size:10px;color:rgba(255,255,255,0.42);">Years Old</div>
         </div>
-        <div style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:12px 20px;text-align:center;">
-          <div style="font-size:28px;font-weight:800;color:#a78bfa;">$1B+</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.5);">Net Worth</div>
+        <div style="background:rgba(124,58,237,0.09);border:1px solid rgba(124,58,237,0.22);border-radius:12px;padding:12px 16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#a78bfa;">$1B+</div><div style="font-size:10px;color:rgba(255,255,255,0.42);">Net Worth (Forbes)</div>
         </div>
-        <div style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:12px;padding:12px 20px;text-align:center;">
-          <div style="font-size:28px;font-weight:800;color:#00ff88;">2020</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.5);">Founded</div>
+        <div style="background:rgba(0,255,136,0.09);border:1px solid rgba(0,255,136,0.22);border-radius:12px;padding:12px 16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#00ff88;">2020</div><div style="font-size:10px;color:rgba(255,255,255,0.42);">Founded Age 22</div>
         </div>
-        <div style="background:rgba(255,165,2,0.1);border:1px solid rgba(255,165,2,0.3);border-radius:12px;padding:12px 20px;text-align:center;">
-          <div style="font-size:28px;font-weight:800;color:#ffa502;">#1</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.5);">Youngest Self-Made Billionaire (Bloomberg 2025)</div>
+        <div style="background:rgba(255,165,2,0.09);border:1px solid rgba(255,165,2,0.22);border-radius:12px;padding:12px 16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#ffa502;">#1</div><div style="font-size:10px;color:rgba(255,255,255,0.42);">Youngest Billionaire Bloomberg 2025</div>
         </div>
       </div>
-
-      <div style="display:grid;gap:16px;">
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <span style="font-size:20px;">🏙️</span>
-          <div>
-            <strong>New York-born crypto native</strong>
-            <div style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:2px;">
-              Raised on the Upper West Side, Manhattan. Bought Ethereum in 2014 at <strong>$0.30/ETH</strong> as a teenager.
-            </div>
-          </div>
+      <div style="display:grid;gap:14px;">
+        <div style="display:flex;gap:12px;"><span style="font-size:17px;">🏙️</span>
+          <div><strong>Born 1998 · Upper West Side, Manhattan</strong>
+          <div style="color:rgba(255,255,255,0.56);font-size:13px;margin-top:2px;">Raised in Hell's Kitchen, NYC. Bought Ethereum in 2014 at <strong style="color:#00d4ff;">$0.30/ETH</strong> as a teenager — one of the earliest retail crypto investors on earth.</div></div>
         </div>
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <span style="font-size:20px;">🎓</span>
-          <div>
-            <strong>NYU Dropout → Founder</strong>
-            <div style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:2px;">
-              Left NYU Computer Science in his freshman year. Built Polymarket <em>alone</em> from his Lower East Side apartment.
-            </div>
-          </div>
+        <div style="display:flex;gap:12px;"><span style="font-size:17px;">🎓</span>
+          <div><strong>NYU Computer Science Dropout → Solo Founder</strong>
+          <div style="color:rgba(255,255,255,0.56);font-size:13px;margin-top:2px;">Left NYU in his freshman year to pursue blockchain full-time. Built Polymarket entirely alone from his Lower East Side apartment in June 2020.</div></div>
         </div>
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <span style="font-size:20px;">🔮</span>
-          <div>
-            <strong>Vision: Markets as Truth Machines</strong>
-            <div style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:2px;">
-              Coplan believes prediction markets are the most honest form of information aggregation ever invented — and built the infrastructure to prove it.
-            </div>
-          </div>
+        <div style="display:flex;gap:12px;"><span style="font-size:17px;">🔮</span>
+          <div><strong>Mission: Markets as Truth Machines</strong>
+          <div style="color:rgba(255,255,255,0.56);font-size:13px;margin-top:2px;">Coplan's founding thesis: financial incentives produce the most honest information aggregation ever built. Prediction markets are the mechanism. Five years later, the world's largest media organisations quote his platform's odds as fact.</div></div>
         </div>
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <span style="font-size:20px;">⚡</span>
-          <div>
-            <strong>World's Youngest Self-Made Billionaire (Oct 2025)</strong>
-            <div style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:2px;">
-              After ICE's $2B investment, Bloomberg named him the youngest self-made billionaire on earth. Forbes estimates $1B+ net worth.
-            </div>
-          </div>
+        <div style="display:flex;gap:12px;"><span style="font-size:17px;">⚡</span>
+          <div><strong>World's Youngest Self-Made Billionaire (Bloomberg, Oct 2025)</strong>
+          <div style="color:rgba(255,255,255,0.56);font-size:13px;margin-top:2px;">After ICE's $2B investment at a $9B valuation, Bloomberg confirmed Coplan's billionaire status at 27. The FBI search of his home after the 2024 election was described by Polymarket as politically motivated. No charges were ever filed.</div></div>
         </div>
       </div>
     </div>
@@ -537,86 +347,91 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. ICONIC TRADES
+# 4 · TECHNOLOGY
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-tag">Technology</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Why Blockchain Makes This Possible</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">The stack is not a detail — it is the competitive moat that no traditional operator can replicate.</div>', unsafe_allow_html=True)
+
+t1, t2, t3 = st.columns(3)
+for col, (icon, title, color, intro, bullets) in zip([t1,t2,t3], [
+    ("⬡","Polygon (PoS) Blockchain","#7c3aed","Polymarket runs on Polygon, Ethereum's fastest Layer-2:",
+     ["~2,000 transactions/second (vs. 15 on Ethereum L1)","Gas fees under $0.01 per trade","Settlement in ~2 seconds, 24/7","Fully auditable and tamper-proof"]),
+    ("💵","USDC Stablecoin Settlement","#00d4ff","All trading uses USDC, a dollar-pegged stablecoin by Circle:",
+     ["$1 USDC = $1 USD at all times — zero crypto price risk","Instant cross-border settlement, no banks needed","No currency conversion — truly global market","Smart contracts auto-pay winners on resolution"]),
+    ("📜","Smart Contract Architecture","#00ff88","The core innovation: contracts that enforce themselves:",
+     ["No counterparty risk — funds held in on-chain escrow","Automatic resolution via UMA oracle protocol","Fully open-source code — anyone can verify","No intermediary: no bank, no broker, no clearing house"]),
+]):
+    with col:
+        bul = "".join(f"<li style='margin-bottom:6px;'>{b}</li>" for b in bullets)
+        st.markdown(f"""
+        <div class="card" style="padding:26px;">
+          <div style="font-size:32px;margin-bottom:12px;">{icon}</div>
+          <div style="font-size:16px;font-weight:700;color:{color};margin-bottom:10px;">{title}</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.52);margin-bottom:12px;">{intro}</div>
+          <ul style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7;padding-left:18px;">{bul}</ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("""
+<div class="info-box">
+  <div style="font-size:13px;font-weight:700;color:#00d4ff;margin-bottom:8px;">Why This Is a Strategic Moat</div>
+  <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7;">
+    Traditional exchanges (NYSE, CME) take <strong>2–3 business days</strong> to settle.
+    Polymarket settles in <strong>2 seconds, 24/7, globally</strong> — with zero banking infrastructure.
+    A conventional operator would need banking licenses in every jurisdiction.
+    Polymarket needs none. The blockchain is the bank. That is a structural cost and speed advantage no legacy fintech can replicate without rebuilding from scratch.
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 5 · ICONIC TRADES
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-tag">Iconic Trades</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title">Where Polymarket Made History</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-sub">These weren\'t just bets. They were the most accurate real-time intelligence on earth.</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">These were not just bets. They were often more accurate than government briefings, expert panels, and trillion-dollar financial models.</div>', unsafe_allow_html=True)
 
 trades = [
-    {
-        "category": "POLITICS · 2024",
-        "title": "Will Trump win the 2024 U.S. Presidential Election?",
-        "volume": "$3.7B+ in bets",
-        "icon": "🗳️",
-        "color": "#00d4ff",
-        "desc": "Polymarket showed Trump at 65–72% in early October — while every major poll said 50/50. The market called it weeks before election night. This single market made Polymarket a household name and was quoted by CNN, Bloomberg, and the FT.",
-        "outcome": "RESOLVED: YES ✓",
-        "outcome_color": "#00ff88",
-    },
-    {
-        "category": "CRYPTO · 2024",
-        "title": "Will Bitcoin hit $100,000 before end of 2024?",
-        "volume": "$250M+ volume",
-        "icon": "₿",
-        "color": "#f7931a",
-        "desc": "With Bitcoin trading around $60K in October, Polymarket climbed to 45% YES. BTC hit $100K in December 2024. Traders who bought YES at $0.30 made 3x returns. A single Bitcoin price market attracted more volume than many hedge funds manage.",
-        "outcome": "RESOLVED: YES ✓",
-        "outcome_color": "#00ff88",
-    },
-    {
-        "category": "GEOPOLITICS · 2024",
-        "title": "Will there be a Gaza ceasefire deal before 2025?",
-        "volume": "$45M+ volume",
-        "icon": "🕊️",
-        "color": "#a78bfa",
-        "desc": "Markets fluctuated from 20% to 80% in real time as negotiations unfolded across Qatar, Egypt and the US. Diplomats and analysts were cited as watching Polymarket odds alongside official briefings — illustrating how these markets become a live intelligence feed.",
-        "outcome": "RESOLVED: YES ✓",
-        "outcome_color": "#00ff88",
-    },
-    {
-        "category": "ENTERTAINMENT · 2024",
-        "title": "Will Elon Musk tweet more than 200 times this week?",
-        "volume": "$1.1M+ volume",
-        "icon": "🐦",
-        "color": "#1da1f2",
-        "desc": "Polymarket hosted 34+ markets on Musk's tweeting habits. The weirdest part? These markets were shockingly accurate. They exposed a new use case: prediction markets as behavioral analytics tools. Brands, hedge funds, and journalists started subscribing to this data.",
-        "outcome": "ENTERTAINMENT MARKET",
-        "outcome_color": "#ffa502",
-    },
-    {
-        "category": "SCIENCE · 2024",
-        "title": "Will the US government confirm alien existence?",
-        "volume": "$2.7M+ volume",
-        "icon": "👽",
-        "color": "#00ff88",
-        "desc": "After Congressional hearings featuring UAP whistleblowers, Polymarket users put $2.7M on 'will the US confirm alien existence?' The market hovered at 3–8% — a more nuanced read than media hysteria suggested. Even fringe topics get priced rationally with money on the line.",
-        "outcome": "STILL OPEN",
-        "outcome_color": "#ffa502",
-    },
+    ("POLITICS · 2024","🗳️","Will Trump win the 2024 U.S. Presidential Election?","$3.7B+ in bets",
+     "Polymarket showed Trump at 65–72% in early October while every major poll showed 50/50. The market called it weeks before election night and was quoted by CNN, Bloomberg, the FT, and the BBC. A single market placed Polymarket on the front page of every major newspaper on earth.",
+     "RESOLVED: YES ✓","#00ff88"),
+    ("CRYPTO · 2024","₿","Will Bitcoin hit $100,000 before end of 2024?","$250M+ volume",
+     "With Bitcoin at ~$60K in October, Polymarket climbed to 45% YES. BTC hit $100K in December. Traders who bought YES at $0.30 made a 3x return in under two months. One crypto price contract attracted more volume than many mid-sized hedge funds manage in a year.",
+     "RESOLVED: YES ✓","#00ff88"),
+    ("GEOPOLITICS · 2024","🕊️","Will there be a Gaza ceasefire deal before 2025?","$45M+ volume",
+     "Markets fluctuated from 20% to 80% in real time as negotiations unfolded across Qatar, Egypt, and Washington. Diplomats and White House analysts were cited as monitoring Polymarket alongside official briefings — the platform had become a live geopolitical intelligence dashboard.",
+     "RESOLVED: YES ✓","#00ff88"),
+    ("FINANCE · 2024","📉","Will the Federal Reserve cut rates in September 2024?","$60M+ volume",
+     "Traders pushed YES above 90% weeks before the official FOMC announcement. Bond traders and macro funds began incorporating Polymarket odds into their models. This demonstrated the path to institutional data monetisation: Polymarket as Bloomberg for probability.",
+     "RESOLVED: YES ✓","#00ff88"),
+    ("ENTERTAINMENT · 2024","🐦","Will Elon Musk tweet more than 200 times this week?","$1.1M+ volume",
+     "Polymarket hosted 34+ markets on Musk's tweeting habits alone — and they were consistently accurate. This demonstrated an entirely new use case: prediction markets as behavioural analytics. Brands, PR firms, and hedge funds began treating this data as a live signal.",
+     "ENTERTAINMENT MARKET","#ffa502"),
+    ("SCIENCE · 2024","👽","Will the US government confirm alien existence?","$2.7M+ volume",
+     "After Congressional UAP whistleblower hearings, users put $2.7M on this question. It held at 3–8% — far more nuanced than media hysteria would suggest. Even speculative events get priced rationally when real money is on the line.",
+     "STILL OPEN","#ffa502"),
 ]
 
 for i in range(0, len(trades), 2):
     cols = st.columns(2)
     for j, col in enumerate(cols):
         if i + j < len(trades):
-            t = trades[i + j]
+            cat, icon, title, vol, desc, outcome, oc = trades[i+j]
             with col:
                 st.markdown(f"""
                 <div class="trade-card">
-                  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-                    <div class="trade-category">{t['category']}</div>
-                    <span style="font-size:28px;">{t['icon']}</span>
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                    <div class="trade-category">{cat}</div><span style="font-size:24px;">{icon}</span>
                   </div>
-                  <div class="trade-title">{t['title']}</div>
-                  <div class="trade-volume">{t['volume']}</div>
-                  <div class="trade-desc">{t['desc']}</div>
-                  <div style="margin-top:16px;">
-                    <span style="color:{t['outcome_color']};font-size:13px;font-weight:700;
-                      background:rgba(255,255,255,0.06);border-radius:50px;padding:6px 14px;">
-                      {t['outcome']}
-                    </span>
-                  </div>
+                  <div class="trade-title">{title}</div>
+                  <div class="trade-volume">{vol}</div>
+                  <div class="trade-desc">{desc}</div>
+                  <div style="margin-top:12px;"><span style="color:{oc};font-size:11px;font-weight:700;background:rgba(255,255,255,0.05);border-radius:50px;padding:5px 14px;">{outcome}</span></div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -624,309 +439,125 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 5. TRADING VOLUME
+# 6 · VOLUME GROWTH
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-tag">Trading Volume</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title">Explosive, Non-Cyclical Growth</div>', unsafe_allow_html=True)
 
-quarters = ["Q1'24", "Q2'24", "Q3'24", "Q4'24", "Q1'25", "Q2'25", "Q3'25", "Q4'25", "Q1'26"]
-volumes = [0.25, 0.75, 2.0, 3.7, 0.8, 1.05, 1.25, 1.55, 1.75]
-colors = ["#7c3aed"] * 4 + ["#00d4ff"] * 5
+quarters = ["Q1'24","Q2'24","Q3'24","Q4'24","Q1'25","Q2'25","Q3'25","Q4'25","Q1'26"]
+volumes  = [0.25,   0.75,   2.0,    3.7,    0.8,    1.05,   1.25,   1.55,   1.75]
 
 fig_vol = go.Figure()
 fig_vol.add_trace(go.Bar(
-    x=quarters,
-    y=volumes,
+    x=quarters, y=volumes,
     marker=dict(
-        color=colors,
-        line=dict(color="rgba(255,255,255,0.1)", width=1),
-        cornerradius=8,
+        color=["rgba(124,58,237,0.75)"]*4 + ["rgba(0,212,255,0.75)"]*5,
+        line=dict(color="rgba(255,255,255,0.07)", width=1),
     ),
     text=[f"${v}B" for v in volumes],
-    textposition="outside",
-    textfont=dict(color="white", size=13, family="Inter"),
+    textposition="outside", textfont=dict(color="white", size=11),
     hovertemplate="<b>%{x}</b><br>Volume: $%{y}B<extra></extra>",
+    name="Quarterly Volume",
 ))
-fig_vol.add_annotation(
-    x="Q4'24", y=3.7,
-    text="<b>2024 Election Peak<br>$3.7B in single quarter</b>",
-    showarrow=True, arrowhead=2,
-    ax=-60, ay=-80,
-    font=dict(color="#ffa502", size=12),
-    arrowcolor="#ffa502",
-    bgcolor="rgba(7,7,15,0.8)",
-    bordercolor="#ffa502",
-    borderwidth=1,
-    borderpad=6,
-)
-fig_vol.add_annotation(
-    x="Q1'26", y=1.75,
-    text="<b>Higher non-election<br>baseline = habitual use</b>",
-    showarrow=True, arrowhead=2,
-    ax=80, ay=-60,
-    font=dict(color="#00ff88", size=12),
-    arrowcolor="#00ff88",
-    bgcolor="rgba(7,7,15,0.8)",
-    bordercolor="#00ff88",
-    borderwidth=1,
-    borderpad=6,
-)
+fig_vol.add_trace(go.Scatter(
+    x=["Q1'25","Q2'25","Q3'25","Q4'25","Q1'26"], y=[0.8,1.05,1.25,1.55,1.75],
+    mode="lines+markers",
+    line=dict(color="#00ff88", width=2, dash="dot"),
+    marker=dict(size=8, color="#00ff88"),
+    name="Non-election baseline trend",
+    hovertemplate="<b>%{x}</b> baseline: $%{y}B<extra></extra>",
+))
+fig_vol.add_annotation(x="Q4'24", y=3.7,
+    text="<b>2024 Election<br>$3.7B single quarter</b>",
+    showarrow=True, arrowhead=2, ax=-45, ay=-65,
+    font=dict(color="#ffa502", size=10), arrowcolor="#ffa502",
+    bgcolor="rgba(7,7,15,0.88)", bordercolor="#ffa502", borderwidth=1, borderpad=5)
+fig_vol.add_annotation(x="Q1'26", y=1.75,
+    text="<b>+600% vs baseline<br>Q1 2024</b>",
+    showarrow=True, arrowhead=2, ax=65, ay=-45,
+    font=dict(color="#00ff88", size=10), arrowcolor="#00ff88",
+    bgcolor="rgba(7,7,15,0.88)", bordercolor="#00ff88", borderwidth=1, borderpad=5)
 fig_vol.update_layout(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    height=420,
-    showlegend=False,
-    yaxis=dict(
-        title="Quarterly Volume (USD Billions)",
-        gridcolor="rgba(255,255,255,0.06)",
-        tickcolor="rgba(255,255,255,0.3)",
-        tickfont=dict(color="rgba(255,255,255,0.6)"),
-        titlefont=dict(color="rgba(255,255,255,0.6)"),
-    ),
-    xaxis=dict(
-        tickfont=dict(color="rgba(255,255,255,0.6)", size=13),
-        tickcolor="rgba(255,255,255,0.1)",
-    ),
-    margin=dict(t=30, b=30, l=60, r=60),
-    font=dict(family="Inter"),
+    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    height=390, barmode="overlay",
+    legend=dict(font=dict(color="rgba(255,255,255,0.62)"), bgcolor="rgba(0,0,0,0)", x=0.01, y=0.98),
+    yaxis=dict(title="Quarterly Volume (USD Billions)",
+               gridcolor="rgba(255,255,255,0.06)",
+               tickfont=dict(color="rgba(255,255,255,0.48)"),
+               titlefont=dict(color="rgba(255,255,255,0.48)")),
+    xaxis=dict(tickfont=dict(color="rgba(255,255,255,0.6)", size=11)),
+    margin=dict(t=30, b=28, l=58, r=68),
+    font=dict(family="Inter", color="white"),
 )
 st.plotly_chart(fig_vol, use_container_width=True)
 
-col_v1, col_v2, col_v3 = st.columns(3)
-with col_v1:
-    st.markdown("""
-    <div class="stat-card">
-      <div class="stat-number" style="color:#a78bfa;">7x</div>
-      <div class="stat-label">Volume growth Q1'24 → Q4'24</div>
-    </div>""", unsafe_allow_html=True)
-with col_v2:
-    st.markdown("""
-    <div class="stat-card">
-      <div class="stat-number" style="color:#00d4ff;">$1.75B</div>
-      <div class="stat-label">Q1 2026 — rising non-election baseline</div>
-    </div>""", unsafe_allow_html=True)
-with col_v3:
-    st.markdown("""
-    <div class="stat-card">
-      <div class="stat-number" style="color:#00ff88;">+600%</div>
-      <div class="stat-label">Non-election baseline vs. Q1 2024</div>
-    </div>""", unsafe_allow_html=True)
+cv1, cv2, cv3 = st.columns(3)
+for col, (num, lbl) in zip([cv1,cv2,cv3], [
+    ("7x","Volume growth Q1 → Q4 2024 (election cycle)"),
+    ("$1.75B","Q1 2026 — rising non-election baseline"),
+    ("+600%","Non-election baseline growth vs. 2024"),
+]):
+    with col:
+        st.markdown(f'<div class="stat-card"><div class="stat-number">{num}</div><div class="stat-label">{lbl}</div></div>', unsafe_allow_html=True)
 
 st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 6. FUNDING TIMELINE
+# 7 · BUSINESS MODEL
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-tag">Funding History</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">From a Lower East Side Apartment to $9B</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-tag">Business Model</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">How Polymarket Makes Money</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">A marketplace model with exchange economics — revenue scales with volume, not headcount.</div>', unsafe_allow_html=True)
 
-funding_data = {
-    "Round": ["Seed", "Series A", "Series B", "ICE Strategic"],
-    "Year": [2020, 2024, 2024, 2025],
-    "Amount": [4, 25, 45, 2000],
-    "Valuation": [10, 200, 1000, 9000],
-}
-df_fund = pd.DataFrame(funding_data)
-
-fig_fund = go.Figure()
-fig_fund.add_trace(go.Scatter(
-    x=df_fund["Year"],
-    y=df_fund["Valuation"],
-    mode="lines+markers+text",
-    line=dict(color="#7c3aed", width=3, dash="dot"),
-    marker=dict(size=16, color=["#7c3aed", "#00d4ff", "#00d4ff", "#00ff88"],
-                line=dict(color="white", width=2)),
-    text=df_fund["Round"],
-    textposition="top center",
-    textfont=dict(color="white", size=12),
-    name="Valuation ($M)",
-    hovertemplate="<b>%{text}</b><br>Year: %{x}<br>Valuation: $%{y}M<extra></extra>",
-))
-fig_fund.add_trace(go.Bar(
-    x=df_fund["Year"],
-    y=df_fund["Amount"],
-    name="Amount Raised ($M)",
-    marker=dict(color=["rgba(124,58,237,0.4)", "rgba(0,212,255,0.4)",
-                        "rgba(0,212,255,0.4)", "rgba(0,255,136,0.4)"],
-                line=dict(color="rgba(255,255,255,0.2)", width=1),
-                cornerradius=6),
-    yaxis="y2",
-    hovertemplate="<b>%{x}</b><br>Raised: $%{y}M<extra></extra>",
-    text=[f"${v}M" for v in df_fund["Amount"]],
-    textposition="inside",
-    textfont=dict(color="white", size=11),
-))
-fig_fund.update_layout(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    height=380,
-    yaxis=dict(
-        title="Valuation ($M)", gridcolor="rgba(255,255,255,0.06)",
-        tickcolor="rgba(255,255,255,0.2)", tickfont=dict(color="rgba(255,255,255,0.5)"),
-        titlefont=dict(color="rgba(255,255,255,0.5)"),
-    ),
-    yaxis2=dict(
-        title="Amount Raised ($M)", overlaying="y", side="right",
-        tickfont=dict(color="rgba(255,255,255,0.5)"),
-        titlefont=dict(color="rgba(255,255,255,0.5)"),
-    ),
-    xaxis=dict(tickfont=dict(color="rgba(255,255,255,0.6)"), tickcolor="rgba(255,255,255,0.1)"),
-    legend=dict(font=dict(color="rgba(255,255,255,0.7)"), bgcolor="rgba(0,0,0,0)"),
-    margin=dict(t=20, b=30, l=60, r=60),
-    barmode="overlay",
-    font=dict(family="Inter"),
-)
-st.plotly_chart(fig_fund, use_container_width=True)
-
-c1, c2, c3, c4 = st.columns(4)
-funding_details = [
-    ("2020 · Seed", "$4M", "Company launch. Solo founder. Zero institutional backing."),
-    ("2024 · Series A", "$25M", "General Catalyst leads. Polymarket survives regulatory scrutiny."),
-    ("2024 · Series B", "$45M", "Founders Fund + Vitalik Buterin. Elite VC stamp of approval."),
-    ("2025 · ICE", "$2B", "NYSE parent invests. $9B pre-money. Game over for competitors."),
-]
-for col, (title, amount, desc) in zip([c1, c2, c3, c4], funding_details):
-    with col:
+bm1, bm2 = st.columns([1.2, 1])
+with bm1:
+    for icon, name, color, share, desc in [
+        ("💸","Transaction Fees","#00d4ff","~70%","A small % fee on every trade. At $1.75B/quarter volume, even a 0.5% take rate implies ~$35M quarterly. Revenue scales directly with platform activity — no marginal cost per additional market."),
+        ("💧","Liquidity Economics","#a78bfa","~15%","Market-making relationships and LP economics. Exchange structure shifts risk to participants rather than onto Polymarket's balance sheet — far more capital-efficient than traditional bookmakers."),
+        ("📊","Data & Institutional API","#00ff88","~10%","Real-time probability feeds sold to media, hedge funds, research firms. CNN, Bloomberg, Reuters already embed Polymarket data. High-margin recurring revenue with low marginal cost."),
+        ("🤝","Sponsored Markets","#ffa502","~5%","Brand and corporate partnerships for market creation. A company could pay to list a market about its product launch or earnings — turning Polymarket into a financial intelligence PR tool."),
+    ]:
         st.markdown(f"""
-        <div class="card" style="padding:24px;">
-          <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:6px;">{title}</div>
-          <div style="font-size:32px;font-weight:800;color:#00d4ff;margin-bottom:10px;">{amount}</div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.5;">{desc}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 7. INVESTORS
-# ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-tag">Investors</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">The Who\'s Who of Disruption Capital</div>', unsafe_allow_html=True)
-
-investors = [
-    {
-        "name": "Peter Thiel",
-        "role": "Founders Fund",
-        "emoji": "🦅",
-        "color": "#00d4ff",
-        "signal": "Co-founder of PayPal, Palantir, Facebook investor. Backs companies that challenge existing institutions.",
-        "quote": '"We wanted flying cars, instead we got 140 characters" — Thiel bets Polymarket becomes the truth layer of the internet.',
-    },
-    {
-        "name": "Vitalik Buterin",
-        "role": "Ethereum Co-Founder",
-        "emoji": "⟠",
-        "color": "#a78bfa",
-        "signal": "Personal investment. The inventor of the blockchain Polymarket runs on vouching with his own capital.",
-        "quote": "Vitalik has long championed prediction markets as Ethereum's killer app. This is his bet paying off.",
-    },
-    {
-        "name": "General Catalyst",
-        "role": "Series A Lead — $25M",
-        "emoji": "🚀",
-        "color": "#00ff88",
-        "signal": "Backed Airbnb, Stripe, Snap. GC's Series A at regulatory peak uncertainty = highest conviction signal.",
-        "quote": "Invested during the CFTC enforcement era. That's not recklessness — that's category conviction.",
-    },
-    {
-        "name": "Intercontinental Exchange",
-        "role": "NYSE Parent · $2B",
-        "emoji": "🏛️",
-        "color": "#ffa502",
-        "signal": "Owns the New York Stock Exchange. Their $2B investment at $9B valuation signals Polymarket as financial infrastructure.",
-        "quote": "When the stock exchange bets $2B on you, you're no longer a startup. You're a new asset class.",
-    },
-]
-
-cols = st.columns(4)
-for col, inv in zip(cols, investors):
-    with col:
-        st.markdown(f"""
-        <div class="investor-card">
-          <div style="font-size:48px;margin-bottom:12px;">{inv['emoji']}</div>
-          <div class="investor-name">{inv['name']}</div>
-          <div class="investor-role">{inv['role']}</div>
-          <div class="investor-signal">{inv['signal']}</div>
-          <div style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.5);font-style:italic;line-height:1.5;">
-            {inv['quote']}
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;">
+          <div style="font-size:26px;">{icon}</div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+              <div style="font-size:15px;font-weight:700;color:{color};">{name}</div>
+              <div style="font-size:18px;font-weight:800;color:{color};">{share}</div>
+            </div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.56);line-height:1.6;">{desc}</div>
           </div>
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 8. MARKET OPPORTUNITY
-# ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-tag">Market Opportunity</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">A $1 Trillion Market in Plain Sight</div>', unsafe_allow_html=True)
-
-col_m1, col_m2 = st.columns([1.2, 1])
-with col_m1:
-    # TAM/SAM/SOM bubble chart
-    fig_tam = go.Figure()
-    sizes = [800, 300, 80]
-    labels = ["TAM<br>~$1T+", "SAM<br>~$200B", "SOM<br>~$20B"]
-    colors_tam = ["rgba(124,58,237,0.25)", "rgba(0,212,255,0.3)", "rgba(0,255,136,0.4)"]
-    border_colors = ["#7c3aed", "#00d4ff", "#00ff88"]
-
-    for size, label, color, bc in zip(sizes, labels, colors_tam, border_colors):
-        fig_tam.add_trace(go.Scatter(
-            x=[0], y=[0],
-            mode="markers+text",
-            marker=dict(size=size, color=color, line=dict(color=bc, width=2),
-                        sizemode="area"),
-            text=[label],
-            textfont=dict(color="white", size=14, family="Inter"),
-            hoverinfo="skip",
-            showlegend=False,
-        ))
-
-    fig_tam.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        height=380,
-        xaxis=dict(visible=False, range=[-400, 400]),
-        yaxis=dict(visible=False, range=[-400, 400]),
+with bm2:
+    fig_pie = go.Figure(go.Pie(
+        labels=["Transaction Fees","Liquidity Economics","Data Products","Sponsored Markets"],
+        values=[70,15,10,5],
+        marker=dict(colors=["#00d4ff","#a78bfa","#00ff88","#ffa502"],
+                    line=dict(color="#07070f", width=3)),
+        hole=0.55,
+        textfont=dict(color="white", size=12),
+        hovertemplate="<b>%{label}</b><br>%{value}%<extra></extra>",
+    ))
+    fig_pie.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", height=270,
+        legend=dict(font=dict(color="rgba(255,255,255,0.65)", size=11), bgcolor="rgba(0,0,0,0)"),
         margin=dict(t=10, b=10, l=10, r=10),
+        annotations=[dict(text="Revenue<br>Mix", x=0.5, y=0.5, font=dict(size=13, color="white"), showarrow=False)],
+        font=dict(family="Inter"),
     )
-    st.plotly_chart(fig_tam, use_container_width=True)
+    st.plotly_chart(fig_pie, use_container_width=True)
 
-with col_m2:
     st.markdown("""
-    <div style="padding-top:20px;">
-      <div style="margin-bottom:28px;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-          <div style="width:16px;height:16px;border-radius:50%;background:#7c3aed;"></div>
-          <div style="font-size:20px;font-weight:700;">TAM — ~$1 Trillion+</div>
-        </div>
-        <div style="color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;padding-left:28px;">
-          Global event trading, political forecasting, sports betting, financial information markets,
-          and institutional probability data. Every uncertain outcome is a potential market.
-        </div>
-      </div>
-      <div style="margin-bottom:28px;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-          <div style="width:16px;height:16px;border-radius:50%;background:#00d4ff;"></div>
-          <div style="font-size:20px;font-weight:700;">SAM — ~$200 Billion</div>
-        </div>
-        <div style="color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;padding-left:28px;">
-          Crypto-native and regulated users who can legally access event contracts and are
-          comfortable with digital infrastructure. Expanding rapidly as USDC adoption grows.
-        </div>
-      </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-          <div style="width:16px;height:16px;border-radius:50%;background:#00ff88;"></div>
-          <div style="font-size:20px;font-weight:700;">SOM — ~$20 Billion</div>
-        </div>
-        <div style="color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;padding-left:28px;">
-          Polymarket's realistically capturable share today — already generating $1.75B/quarter
-          and growing. ICE partnership opens the institutional layer.
-        </div>
+    <div class="card" style="padding:20px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">The Scalability Case</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.65;">
+        Traditional operators need <strong>licensing teams, balance-sheet risk, and country-specific compliance</strong> for every market they operate in.
+        Polymarket's exchange model shifts risk to traders.
+        Once infrastructure exists, each new event market costs <strong>near-zero marginal operating expense</strong>.
+        A Fed rate decision market and a Super Bowl market run on identical infrastructure.
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -935,80 +566,184 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 9. COMPETITION
+# 8 · FUNDING
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-tag">Funding History</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">From a Lower East Side Apartment to $9 Billion</div>', unsafe_allow_html=True)
+
+years_plot = [2020, 2024, 2024.4, 2025]
+vals_plot  = [20, 300, 1000, 9000]
+raised     = [4, 25, 45, 2000]
+rounds     = ["Seed","Series A","Series B","ICE Strategic"]
+
+fig_fund = go.Figure()
+fig_fund.add_trace(go.Bar(
+    x=years_plot, y=raised, name="Amount Raised ($M)",
+    marker=dict(color=["rgba(124,58,237,0.35)","rgba(0,212,255,0.35)","rgba(0,212,255,0.35)","rgba(0,255,136,0.35)"],
+                line=dict(color="rgba(255,255,255,0.12)", width=1)),
+    yaxis="y2",
+    text=[f"${v}M" for v in raised], textposition="inside", textfont=dict(color="white", size=11),
+    hovertemplate="<b>%{text[0]}</b><br>Raised: $%{y}M<extra></extra>",
+))
+fig_fund.add_trace(go.Scatter(
+    x=years_plot, y=vals_plot, mode="lines+markers+text",
+    line=dict(color="#7c3aed", width=3, dash="dot"),
+    marker=dict(size=14, color=["#7c3aed","#00d4ff","#00d4ff","#00ff88"],
+                line=dict(color="white", width=2)),
+    text=rounds, textposition="top center", textfont=dict(color="white", size=10),
+    name="Valuation ($M)",
+    hovertemplate="<b>%{text}</b><br>Valuation: $%{y}M<extra></extra>",
+))
+fig_fund.update_layout(
+    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=340,
+    yaxis=dict(title="Valuation ($M)", gridcolor="rgba(255,255,255,0.06)",
+               tickfont=dict(color="rgba(255,255,255,0.45)"),
+               titlefont=dict(color="rgba(255,255,255,0.45)")),
+    yaxis2=dict(title="Amount Raised ($M)", overlaying="y", side="right",
+                tickfont=dict(color="rgba(255,255,255,0.45)"),
+                titlefont=dict(color="rgba(255,255,255,0.45)")),
+    xaxis=dict(tickvals=[2020,2024,2024.4,2025], ticktext=["2020","2024 (A)","2024 (B)","2025"],
+               tickfont=dict(color="rgba(255,255,255,0.6)")),
+    legend=dict(font=dict(color="rgba(255,255,255,0.62)"), bgcolor="rgba(0,0,0,0)"),
+    margin=dict(t=30, b=28, l=60, r=70), barmode="overlay",
+    font=dict(family="Inter", color="white"),
+)
+st.plotly_chart(fig_fund, use_container_width=True)
+
+fd1, fd2, fd3, fd4 = st.columns(4)
+for col, (title, amount, desc) in zip([fd1,fd2,fd3,fd4], [
+    ("2020 · Seed","$4M","Solo founder. Zero institutional backing. Pure conviction in blockchain prediction markets."),
+    ("2024 · Series A","$25M","General Catalyst leads — during active CFTC scrutiny. The boldest conviction signal in fintech that year."),
+    ("2024 · Series B","$45M","Founders Fund + Vitalik Buterin. Elite VC credibility meets crypto-native legitimacy in one round."),
+    ("2025 · ICE","$2B","NYSE parent invests at $9B pre-money valuation. Polymarket is now financial infrastructure."),
+]):
+    with col:
+        st.markdown(f"""
+        <div class="card" style="padding:20px;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.42);margin-bottom:5px;">{title}</div>
+          <div style="font-size:28px;font-weight:800;color:#00d4ff;margin-bottom:9px;">{amount}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.56);line-height:1.5;">{desc}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 9 · INVESTORS
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-tag">Investors</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">The Who\'s Who of Disruption Capital</div>', unsafe_allow_html=True)
+
+inv_cols = st.columns(4)
+for col, (emoji, name, role, color, signal, quote) in zip(inv_cols, [
+    ("🦅","Peter Thiel","Founders Fund","#00d4ff",
+     "Co-founder of PayPal & Palantir. Early Facebook investor. Backs companies that challenge existing institutions — not incrementally improve them.",
+     '"For Thiel, Polymarket is a market-based truth mechanism that challenges mainstream media, polling, and expert consensus — three institutions he has long distrusted."'),
+    ("⟠","Vitalik Buterin","Ethereum Co-Founder · Personal Investment","#a78bfa",
+     "Inventor of the blockchain Polymarket is built on. Personal capital investment signals the highest possible crypto-native endorsement one human being can give.",
+     '"Vitalik publicly advocated for prediction markets as Ethereum\'s killer app since 2015. This investment is his thesis becoming reality."'),
+    ("🚀","General Catalyst","Series A Lead · $25M","#00ff88",
+     "Backed Airbnb, Stripe, Snapchat. Led the Series A during active CFTC enforcement — one of the most courageous conviction calls in fintech investment history.",
+     '"Investing during a regulatory enforcement period is not recklessness. It means GC believes the category will survive — and that Polymarket will lead it."'),
+    ("🏛️","Intercontinental Exchange","NYSE Parent · $2B Strategic","#ffa502",
+     "Owns the New York Stock Exchange and ICE Futures. Their $2B investment at $9B valuation is the most unambiguous institutional signal possible.",
+     '"When the stock exchange operator bets $2B on you, you are no longer a startup. You are a new asset class — and the exit path just became obvious."'),
+]):
+    with col:
+        st.markdown(f"""
+        <div class="investor-card">
+          <div style="font-size:40px;margin-bottom:10px;">{emoji}</div>
+          <div class="investor-name">{name}</div>
+          <div class="investor-role">{role}</div>
+          <div class="investor-signal">{signal}</div>
+          <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,0.42);font-style:italic;line-height:1.5;">{quote}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 10 · MARKET OPPORTUNITY
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-tag">Market Opportunity</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">A Multi-Trillion Dollar Market in Plain Sight</div>', unsafe_allow_html=True)
+
+mo1, mo2 = st.columns([1, 1.2])
+with mo1:
+    for tag, size, color, desc in [
+        ("TAM","~$1 Trillion+","#7c3aed","Global event trading, sports betting (~$500B globally), political forecasting, financial information markets, and institutional probability data. Every uncertain outcome on earth is a potential Polymarket contract."),
+        ("SAM","~$200 Billion","#00d4ff","Crypto-native and regulated users who can legally access event contracts and are comfortable with digital wallets and USDC. Expanding rapidly as stablecoin familiarity grows globally."),
+        ("SOM","~$20 Billion","#00ff88","Polymarket's realistic near-term capture — already generating $7B+ annualised volume in 2026. The ICE partnership opens the institutional data layer, which alone could represent $1B+ in recurring high-margin revenue."),
+    ]:
+        st.markdown(f"""
+        <div style="border-left:3px solid {color};padding:14px 18px;margin-bottom:16px;background:rgba(255,255,255,0.03);border-radius:0 12px 12px 0;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-size:12px;font-weight:700;color:{color};letter-spacing:2px;">{tag}</div>
+            <div style="font-size:20px;font-weight:800;color:{color};">{size}</div>
+          </div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.58);line-height:1.6;">{desc}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+with mo2:
+    fig_sb = go.Figure(go.Sunburst(
+        labels=["Total Market","TAM","SAM","SOM","Sports Betting","Political Markets","Financial Info","Crypto-native","Regulated Users","Polymarket Now"],
+        parents=["","Total Market","TAM","SAM","TAM","TAM","TAM","SAM","SAM","SOM"],
+        values=[1000,800,200,20,300,200,300,120,80,20],
+        marker=dict(colors=["#07070f","#7c3aed","#00d4ff","#00ff88",
+                             "#9f7aea","#6d4ea8","#4c3575","#00a8cc","#0088aa","#00ff88"],
+                    line=dict(color="#07070f", width=2)),
+        textfont=dict(color="white", size=11),
+        hovertemplate="<b>%{label}</b><br>%{value}<extra></extra>",
+    ))
+    fig_sb.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", height=340,
+        margin=dict(t=10, b=10, l=10, r=10), font=dict(family="Inter"),
+    )
+    st.plotly_chart(fig_sb, use_container_width=True)
+
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 11 · COMPETITION
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-tag">Competition</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title">Polymarket vs. The World</div>', unsafe_allow_html=True)
 
-comparison = {
-    "Dimension": ["Regulatory Status", "Monthly Volume", "Settlement", "User Base", "Media Presence", "Valuation", "US Access", "Viral Growth"],
-    "Polymarket": ["Crypto-native (CFTC resolved)", "$1.75B+ (Q1 2026)", "USDC on Polygon", "445K+ active traders", "Quoted by CNN, FT, Reuters", "$9B post-ICE", "Re-entered 2025 via QCEX", "🔥 Explosive"],
-    "Kalshi": ["Fully CFTC-regulated", "~$200M/month", "USD, bank transfer", "Growing but smaller", "Less viral, more institutional", "~$1B (est.)", "Always compliant", "📈 Steady"],
-}
-df_comp = pd.DataFrame(comparison)
+cc1, cc2 = st.columns([1.1, 1])
+with cc1:
+    df_comp = pd.DataFrame({
+        "Dimension": ["Regulatory Status","Monthly Volume","Settlement Speed","Active Traders","Media Presence","Valuation","US Access","Growth Profile"],
+        "Polymarket 🔮": ["Crypto-native (CFTC via QCEX)","$2B+/month","2 seconds (on-chain)","445K+ Oct 2025","CNN · FT · Reuters · BBC daily","$9B post-ICE","Re-entered 2025","Viral / exponential"],
+        "Kalshi 🏛️": ["Fully CFTC-regulated","~$200M/month","1–3 business days (banking)","Growing, smaller","Institutional, less viral","~$1B (est.)","Always compliant","Steady / institutional"],
+    })
+    st.dataframe(df_comp, use_container_width=True, hide_index=True, height=320)
 
-col_table, col_radar = st.columns([1, 1])
-with col_table:
-    st.dataframe(
-        df_comp.style
-        .set_properties(**{
-            "background-color": "rgba(13,13,26,0.8)",
-            "color": "white",
-            "border": "1px solid rgba(255,255,255,0.08)",
-            "font-size": "14px",
-        })
-        .set_table_styles([
-            {"selector": "th", "props": [
-                ("background-color", "rgba(0,212,255,0.1)"),
-                ("color", "#00d4ff"),
-                ("font-weight", "600"),
-                ("font-size", "13px"),
-                ("text-align", "center"),
-            ]},
-        ]),
-        use_container_width=True,
-        hide_index=True,
-        height=340,
-    )
-
-with col_radar:
-    categories = ["Volume", "Viral Growth", "Regulation", "Brand", "Tech", "VC Backing"]
-    poly_scores = [95, 90, 60, 92, 88, 95]
-    kalshi_scores = [35, 40, 95, 55, 75, 60]
-
+with cc2:
     fig_radar = go.Figure()
+    cats = ["Volume","Viral Growth","Regulation","Brand Power","Tech Stack","VC Quality"]
     fig_radar.add_trace(go.Scatterpolar(
-        r=poly_scores + [poly_scores[0]],
-        theta=categories + [categories[0]],
-        fill="toself",
-        fillcolor="rgba(0,212,255,0.15)",
-        line=dict(color="#00d4ff", width=2),
-        name="Polymarket",
+        r=[95,90,60,92,88,95,95], theta=cats+[cats[0]],
+        fill="toself", fillcolor="rgba(0,212,255,0.12)",
+        line=dict(color="#00d4ff", width=2), name="Polymarket",
         hovertemplate="%{theta}: %{r}<extra></extra>",
     ))
     fig_radar.add_trace(go.Scatterpolar(
-        r=kalshi_scores + [kalshi_scores[0]],
-        theta=categories + [categories[0]],
-        fill="toself",
-        fillcolor="rgba(124,58,237,0.12)",
-        line=dict(color="#a78bfa", width=2, dash="dash"),
-        name="Kalshi",
+        r=[30,38,95,52,72,58,30], theta=cats+[cats[0]],
+        fill="toself", fillcolor="rgba(124,58,237,0.09)",
+        line=dict(color="#a78bfa", width=2, dash="dash"), name="Kalshi",
         hovertemplate="%{theta}: %{r}<extra></extra>",
     ))
     fig_radar.update_layout(
-        polar=dict(
-            bgcolor="rgba(0,0,0,0)",
-            radialaxis=dict(visible=True, range=[0, 100], tickcolor="rgba(255,255,255,0.3)",
-                           tickfont=dict(color="rgba(255,255,255,0.4)", size=10),
-                           gridcolor="rgba(255,255,255,0.08)"),
-            angularaxis=dict(tickfont=dict(color="rgba(255,255,255,0.7)", size=13),
-                            gridcolor="rgba(255,255,255,0.08)"),
-        ),
-        paper_bgcolor="rgba(0,0,0,0)",
-        height=340,
-        legend=dict(font=dict(color="rgba(255,255,255,0.7)"), bgcolor="rgba(0,0,0,0)"),
-        margin=dict(t=20, b=20, l=40, r=40),
-        font=dict(family="Inter"),
+        polar=dict(bgcolor="rgba(0,0,0,0)",
+                   radialaxis=dict(visible=True, range=[0,100], tickfont=dict(color="rgba(255,255,255,0.3)", size=8), gridcolor="rgba(255,255,255,0.07)"),
+                   angularaxis=dict(tickfont=dict(color="rgba(255,255,255,0.68)", size=11), gridcolor="rgba(255,255,255,0.07)")),
+        paper_bgcolor="rgba(0,0,0,0)", height=310,
+        legend=dict(font=dict(color="rgba(255,255,255,0.62)"), bgcolor="rgba(0,0,0,0)"),
+        margin=dict(t=20, b=20, l=28, r=28), font=dict(family="Inter"),
     )
     st.plotly_chart(fig_radar, use_container_width=True)
 
@@ -1016,65 +751,94 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 10. RISKS
+# 12 · SWOT
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-tag">Risk Analysis</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">Eyes Open: The Risk Stack</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-tag">SWOT Analysis</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Strategic Position at a Glance</div>', unsafe_allow_html=True)
 
-risks = [
-    {
-        "level": "HIGH", "level_class": "risk-high",
-        "title": "Regulatory Risk (CFTC)",
-        "desc": "2022 fine of $1.4M. CFTC may classify markets as derivatives requiring full exchange registration. Re-entry via QCEX acquisition mitigates but doesn't eliminate this risk.",
-    },
-    {
-        "level": "HIGH", "level_class": "risk-high",
-        "title": "Political Scrutiny",
-        "desc": "FBI searched Shayne Coplan's home post-2024 election. Political markets draw government attention. Company described it as politically motivated — not established wrongdoing.",
-    },
-    {
-        "level": "MED", "level_class": "risk-med",
-        "title": "Event-Cycle Revenue Volatility",
-        "desc": "Q4 2024 was 4x higher than adjacent quarters. If non-election baseline stays low, revenue visibility is poor and multiples may compress.",
-    },
-    {
-        "level": "MED", "level_class": "risk-med",
-        "title": "Crypto Compliance Risk",
-        "desc": "USDC settlement, non-custodial wallets, and geofencing create complex KYC/AML challenges. VPN circumvention by restricted users is a real liability.",
-    },
-    {
-        "level": "LOW", "level_class": "risk-low",
-        "title": "Competition from Kalshi",
-        "desc": "Kalshi has full regulatory approval and growing institutional traction. However, Polymarket's brand dominance and viral distribution are hard to replicate.",
-    },
-    {
-        "level": "LOW", "level_class": "risk-low",
-        "title": "Exit Uncertainty",
-        "desc": "IPO path requires audited revenues and regulatory clarity. M&A path exists (ICE is already invested). Exit optionality is real but timeline-dependent.",
-    },
-]
-
-for i in range(0, len(risks), 2):
-    col1, col2 = st.columns(2)
-    for j, col in enumerate([col1, col2]):
-        if i + j < len(risks):
-            r = risks[i + j]
-            with col:
-                st.markdown(f"""
-                <div class="card" style="padding:24px;margin-bottom:16px;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <div style="font-size:17px;font-weight:700;">{r['title']}</div>
-                    <span class="risk-pill {r['level_class']}">{r['level']}</span>
-                  </div>
-                  <div style="font-size:14px;color:rgba(255,255,255,0.65);line-height:1.6;">{r['desc']}</div>
-                </div>
-                """, unsafe_allow_html=True)
+sw1, sw2 = st.columns(2)
+op1, op2 = st.columns(2)
+for col, name, color, bg, border, points in [
+    (sw1,"Strengths","#00ff88","rgba(0,255,136,0.05)","rgba(0,255,136,0.22)",[
+        "First-mover advantage — 5-year head start on all competitors",
+        "Strongest brand in prediction markets globally",
+        "Deep liquidity moat — the hardest thing to replicate",
+        "Crypto-native infrastructure for global instant settlement",
+        "Media references generate free, self-reinforcing distribution",
+        "Elite investor signal: Thiel + Vitalik + GC + ICE all in",
+        "US market re-entry reduces total addressable market ceiling",
+    ]),
+    (sw2,"Weaknesses","#ff4757","rgba(255,71,87,0.05)","rgba(255,71,87,0.22)",[
+        "Revenue heavily dependent on political event cycles",
+        "Private financials — limited visibility into true margins",
+        "Regulatory overhang persists despite QCEX acquisition",
+        "FBI home search created institutional confidence concern",
+        "Non-custodial wallet access creates KYC/AML enforcement gaps",
+        "Brand associated with gambling in some regulatory circles",
+    ]),
+    (op1,"Opportunities","#00d4ff","rgba(0,212,255,0.05)","rgba(0,212,255,0.22)",[
+        "Institutional data API — sell probability feeds to Bloomberg, hedge funds",
+        "Expand into macroeconomic forecasting (Fed, ECB, CPI releases)",
+        "Sports and entertainment markets for habitual daily engagement",
+        "ICE partnership unlocks institutional clearing and distribution",
+        "Regulatory clarity could create high barriers to entry for competitors",
+        "International expansion into LatAm, SEA, Africa markets",
+        "White-label prediction market SaaS for media companies",
+    ]),
+    (op2,"Threats","#ffa502","rgba(255,165,2,0.05)","rgba(255,165,2,0.22)",[
+        "CFTC reclassifies all event contracts as unregistered derivatives",
+        "Political markets legislation bans election betting in the US",
+        "Kalshi growing institutional base with full regulatory approval",
+        "State-level gambling regulations expand to cover prediction markets",
+        "Market manipulation risk — large single traders move prices",
+        "Negative public narrative linking platform to political controversy",
+    ]),
+]:
+    with col:
+        pts = "".join(f"<li style='margin-bottom:6px;'>{p}</li>" for p in points)
+        st.markdown(f"""
+        <div style="background:{bg};border:1px solid {border};border-radius:14px;padding:22px;margin-bottom:14px;">
+          <div style="font-size:14px;font-weight:700;color:{color};margin-bottom:12px;letter-spacing:1px;">{name.upper()}</div>
+          <ul style="font-size:13px;color:rgba(255,255,255,0.68);line-height:1.65;padding-left:18px;margin:0;">{pts}</ul>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 11. INVESTMENT THESIS
+# 13 · RISKS
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-tag">Risk Analysis</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Eyes Open: The Risk Stack</div>', unsafe_allow_html=True)
+
+for i in range(0, 6, 2):
+    risk_pairs = [
+        ("HIGH","risk-high","CFTC Regulatory Risk","2022 CFTC fine of $1.4M for offering unregistered event-based binary options. The legal question — derivatives or information products? — changes everything. QCEX acquisition mitigates but does not eliminate this risk. CFTC classification remains the single biggest binary outcome for the business."),
+        ("HIGH","risk-high","Political & FBI Scrutiny","FBI searched Shayne Coplan's home post-2024 election. No charges were filed and the company described it as politically motivated. However, law-enforcement attention increases cost of capital, complicates bank partnerships, and makes institutional co-investors cautious about governance exposure."),
+        ("MED","risk-med","Revenue Cyclicality","Q4 2024 volume was 4× adjacent quarters due to the US election. If the non-election baseline does not keep rising, revenue visibility weakens and the $9B entry valuation may look expensive on a through-cycle basis."),
+        ("MED","risk-med","Crypto Compliance Complexity","USDC settlement and non-custodial wallet access create real KYC/AML challenges. Regulators scrutinise whether VPN access circumvents geofencing. Technical crypto compliance at institutional scale requires sustained legal and engineering investment."),
+        ("LOW","risk-low","Kalshi Competition","Kalshi has full CFTC approval and is growing institutional traction. However, Polymarket leads on volume (10×), brand, and viral distribution — advantages that require years and hundreds of millions to replicate."),
+        ("LOW","risk-low","Exit Uncertainty","A public market exit requires audited revenues and regulatory clarity. But ICE — already an investor — is the most natural acquirer. The strategic acquisition path is clear and reduces exit risk materially."),
+    ]
+    c1r, c2r = st.columns(2)
+    for col, (lvl, cls, title, desc) in zip([c1r,c2r], risk_pairs[i:i+2]):
+        with col:
+            st.markdown(f"""
+            <div class="card" style="padding:20px;margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+                <div style="font-size:15px;font-weight:700;">{title}</div>
+                <span class="risk-pill {cls}">{lvl}</span>
+              </div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.65;">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 14 · INVESTMENT THESIS
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-tag">Investment Thesis</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title">Our Verdict</div>', unsafe_allow_html=True)
@@ -1082,70 +846,66 @@ st.markdown('<div class="section-title">Our Verdict</div>', unsafe_allow_html=Tr
 st.markdown("""
 <div class="reco-box">
   <div class="reco-verdict">CONDITIONAL INVEST</div>
-  <div style="font-size:22px;color:rgba(255,255,255,0.8);max-width:800px;margin:0 auto 40px;line-height:1.6;">
-    Polymarket is the most compelling fintech infrastructure bet of 2026 —
-    with one critical caveat: regulatory clarity is the unlock condition.
+  <div style="font-size:19px;color:rgba(255,255,255,0.72);max-width:800px;margin:0 auto 32px;line-height:1.65;">
+    Polymarket is the most compelling fintech infrastructure bet of 2026.
+    The condition: regulatory clarity is the unlock.
+    If it comes — the upside is asymmetric.
+    If it doesn't — the downside is existential. Price that binary accordingly.
   </div>
 </div>
 """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
-
-col_bull, col_bear = st.columns(2)
-with col_bull:
-    st.markdown("""
-    <div class="card" style="border-color:rgba(0,255,136,0.3);background:rgba(0,255,136,0.04);">
-      <div style="color:#00ff88;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">
-        BULL CASE — Why Invest Now
-      </div>
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div style="display:flex;gap:12px;"><span style="color:#00ff88;">✓</span><span>First-mover with unassailable brand & liquidity moat</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#00ff88;">✓</span><span>NYSE parent (ICE) validates institutional exit path at $9B+</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#00ff88;">✓</span><span>Non-election baseline growing 600% vs. 2024 — habitual use emerging</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#00ff88;">✓</span><span>Founders Fund + Vitalik = most credible signal in crypto-fintech</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#00ff88;">✓</span><span>Media quotes Polymarket odds — organic distribution no competitor can buy</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#00ff88;">✓</span><span>Re-entered U.S. market via QCEX — regulatory overhang reducing</span></div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col_bear:
-    st.markdown("""
-    <div class="card" style="border-color:rgba(255,71,87,0.3);background:rgba(255,71,87,0.04);">
-      <div style="color:#ff4757;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">
-        BEAR CASE — What Must Be True to Not Invest
-      </div>
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div style="display:flex;gap:12px;"><span style="color:#ff4757;">✗</span><span>CFTC reclassifies all prediction contracts as unregistered derivatives</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#ff4757;">✗</span><span>Political markets banned — primary revenue & attention driver disappears</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#ff4757;">✗</span><span>FBI investigation escalates to charges against founder</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#ff4757;">✗</span><span>Non-election baseline stagnates; revenue remains event-cyclical</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#ff4757;">✗</span><span>Kalshi captures institutional market while Polymarket fights regulators</span></div>
-        <div style="display:flex;gap:12px;"><span style="color:#ff4757;">✗</span><span>$9B entry valuation leaves insufficient upside for new investors</span></div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+cb, cbe = st.columns(2)
+for col, clr, cls_color, heading, items in [
+    (cb,"rgba(0,255,136,0.28)","#00ff88","BULL CASE — Why Invest Now",[
+        "First-mover with unassailable brand and liquidity moat",
+        "NYSE parent ICE validates institutional exit at $9B+",
+        "Non-election baseline growing 600% — habitual use emerging",
+        "Founders Fund + Vitalik = strongest crypto-fintech signal possible",
+        "CNN, BBC, Reuters quote odds daily — organic free distribution",
+        "Re-entered US via QCEX — regulatory overhang materially reduced",
+        "Data API business = high-margin recurring revenue layer",
+    ]),
+    (cbe,"rgba(255,71,87,0.28)","#ff4757","BEAR CASE — When Not to Invest",[
+        "CFTC reclassifies all contracts as unregistered derivatives",
+        "Political markets banned — primary volume driver eliminated",
+        "FBI investigation escalates into founder charges",
+        "Non-election baseline stagnates — revenue remains cyclical",
+        "Kalshi captures institutional market; Polymarket stays niche",
+        "$9B entry valuation leaves insufficient upside for new investors",
+        "Regulatory backlash prevents any institutional acquirer from engaging",
+    ]),
+]:
+    with col:
+        items_html = "".join(f'<div style="display:flex;gap:9px;margin-bottom:10px;font-size:14px;"><span style="color:{cls_color};font-weight:700;">{"✓" if cls_color=="#00ff88" else "✗"}</span><span>{it}</span></div>' for it in items)
+        st.markdown(f"""
+        <div class="card" style="border-color:{clr};background:rgba(255,255,255,0.02);">
+          <div style="color:{cls_color};font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;">{heading}</div>
+          {items_html}
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("""
-<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:32px;margin-top:8px;">
-  <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Investment Structure We Recommend</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
-    <div style="background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:12px;padding:16px;">
-      <div style="color:#00d4ff;font-weight:700;margin-bottom:6px;">Staged Financing</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.6);">Milestone-based capital release tied to regulatory progress</div>
+<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:26px;">
+  <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Recommended Investment Structure</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;">
+    <div style="background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.18);border-radius:11px;padding:14px;">
+      <div style="color:#00d4ff;font-weight:700;font-size:13px;margin-bottom:5px;">Staged Financing</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.52);">Milestone-based capital tied to regulatory progress</div>
     </div>
-    <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px;">
-      <div style="color:#a78bfa;font-weight:700;margin-bottom:6px;">Governance Rights</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.6);">Board seat + compliance reporting requirements</div>
+    <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.18);border-radius:11px;padding:14px;">
+      <div style="color:#a78bfa;font-weight:700;font-size:13px;margin-bottom:5px;">Governance Rights</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.52);">Board seat + compliance reporting + information rights</div>
     </div>
-    <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);border-radius:12px;padding:16px;">
-      <div style="color:#00ff88;font-weight:700;margin-bottom:6px;">US Access Plan</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.6);">Require credible strategy: registration, partnership, or spinout</div>
+    <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.18);border-radius:11px;padding:14px;">
+      <div style="color:#00ff88;font-weight:700;font-size:13px;margin-bottom:5px;">US Access Plan</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.52);">Credible path: registration, partnership, or spinout</div>
     </div>
-    <div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.2);border-radius:12px;padding:16px;">
-      <div style="color:#ffa502;font-weight:700;margin-bottom:6px;">Category Diversification</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.6);">Must show non-political markets retain users between election cycles</div>
+    <div style="background:rgba(255,165,2,0.06);border:1px solid rgba(255,165,2,0.18);border-radius:11px;padding:14px;">
+      <div style="color:#ffa502;font-weight:700;font-size:13px;margin-bottom:5px;">Category Diversification</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.52);">Demonstrate non-political markets retain users between cycles</div>
     </div>
   </div>
 </div>
@@ -1155,106 +915,86 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 12. LIVE POLYMARKET DATA
+# 15 · LIVE MARKETS
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-tag">Live Data</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title">Polymarket — Right Now</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-sub"><span style="animation:pulse 2s infinite;">&#x25CF;</span> Live markets pulled directly from the Polymarket Gamma API</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-sub">Live markets pulled directly from the Polymarket Gamma API · public · no authentication required</div>', unsafe_allow_html=True)
 
 @st.cache_data(ttl=120)
 def fetch_live_markets():
     try:
-        url = "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=12&order=volume&ascending=false"
-        r = requests.get(url, timeout=8)
+        r = requests.get(
+            "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=10&order=volume&ascending=false",
+            timeout=8,
+        )
         r.raise_for_status()
-        return r.json()
-    except Exception:
-        return None
+        return r.json(), None
+    except Exception as e:
+        return None, str(e)
 
-with st.spinner("Fetching live markets..."):
-    markets = fetch_live_markets()
+with st.spinner("Fetching live markets from Polymarket..."):
+    markets, err = fetch_live_markets()
 
 if markets:
     st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
       <span class="live-dot"></span>
-      <span style="color:#00ff88;font-size:14px;font-weight:600;">{len(markets)} markets loaded · Updated {datetime.now().strftime('%H:%M:%S')}</span>
+      <span style="color:#00ff88;font-size:13px;font-weight:600;">{len(markets)} markets loaded · {datetime.now().strftime('%H:%M:%S')}</span>
     </div>
     """, unsafe_allow_html=True)
-
     for m in markets[:8]:
-        title = m.get("question") or m.get("title", "Unknown Market")
+        title = m.get("question") or m.get("title", "Unknown")
         volume = m.get("volume", 0)
-        outcomes = m.get("outcomes", [])
         prices = m.get("outcomePrices", [])
-
         try:
-            vol_fmt = f"${float(volume):,.0f}" if volume else "N/A"
+            vol_fmt = f"${float(volume):,.0f}"
         except Exception:
             vol_fmt = "N/A"
-
         yes_prob = 50
         try:
-            if prices and len(prices) >= 1:
+            if prices:
                 yes_prob = round(float(prices[0]) * 100, 1)
         except Exception:
             pass
-
         st.markdown(f"""
         <div class="live-card">
-          <div style="flex:1;min-width:0;margin-right:24px;">
-            <div style="font-size:15px;font-weight:600;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-              <span class="live-dot"></span>{title[:90]}{"..." if len(title) > 90 else ""}
+          <div style="flex:1;min-width:0;margin-right:18px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <span class="live-dot"></span>{title[:95]}{"…" if len(title)>95 else ""}
             </div>
-            <div class="probability-bar">
-              <div class="probability-fill" style="width:{yes_prob}%;"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:6px;">
-              <span style="font-size:12px;color:rgba(255,255,255,0.5);">YES probability</span>
-              <span style="font-size:12px;color:#00d4ff;font-weight:700;">{yes_prob}%</span>
+            <div class="probability-bar"><div class="probability-fill" style="width:{yes_prob}%;"></div></div>
+            <div style="display:flex;justify-content:space-between;margin-top:5px;">
+              <span style="font-size:11px;color:rgba(255,255,255,0.38);">YES probability</span>
+              <span style="font-size:11px;color:#00d4ff;font-weight:700;">{yes_prob}%</span>
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:18px;font-weight:700;color:#00ff88;">{vol_fmt}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.4);">volume</div>
+            <div style="font-size:16px;font-weight:700;color:#00ff88;">{vol_fmt}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.32);">volume</div>
           </div>
         </div>
         """, unsafe_allow_html=True)
-
     if st.button("Refresh live data"):
         st.cache_data.clear()
         st.rerun()
 else:
-    st.markdown("""
-    <div style="background:rgba(255,165,2,0.08);border:1px solid rgba(255,165,2,0.3);border-radius:16px;padding:32px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:16px;">🌐</div>
-      <div style="font-size:18px;font-weight:600;margin-bottom:8px;">API Temporarily Unavailable</div>
-      <div style="color:rgba(255,255,255,0.6);">Live data requires an internet connection to gamma-api.polymarket.com</div>
-    </div>
-    """, unsafe_allow_html=True)
-    # Show sample data instead
-    sample = [
-        ("Will Bitcoin reach $150,000 in 2026?", 82000, 48),
-        ("Will the Fed cut rates before September 2026?", 45000, 61),
-        ("Will there be a US recession in 2026?", 38000, 33),
-        ("Will Trump sign the crypto bill in 2026?", 29000, 71),
-    ]
-    for title, vol, prob in sample:
+    st.markdown('<div class="info-box"><strong>API temporarily unavailable</strong> — sample data shown.</div>', unsafe_allow_html=True)
+    for title, prob in [
+        ("Will Bitcoin reach $150,000 in 2026?", 48),
+        ("Will the Fed cut rates before September 2026?", 61),
+        ("Will there be a US recession in 2026?", 33),
+        ("Will Trump sign the crypto bill in 2026?", 71),
+    ]:
         st.markdown(f"""
         <div class="live-card" style="opacity:0.7;">
-          <div style="flex:1;min-width:0;margin-right:24px;">
-            <div style="font-size:15px;font-weight:600;margin-bottom:8px;">⚡ {title}</div>
-            <div class="probability-bar">
-              <div class="probability-fill" style="width:{prob}%;"></div>
+          <div style="flex:1;min-width:0;margin-right:18px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:7px;">⚡ {title}</div>
+            <div class="probability-bar"><div class="probability-fill" style="width:{prob}%;"></div></div>
+            <div style="display:flex;justify-content:space-between;margin-top:5px;">
+              <span style="font-size:11px;color:rgba(255,255,255,0.38);">YES probability (sample)</span>
+              <span style="font-size:11px;color:#00d4ff;font-weight:700;">{prob}%</span>
             </div>
-            <div style="display:flex;justify-content:space-between;margin-top:6px;">
-              <span style="font-size:12px;color:rgba(255,255,255,0.5);">YES probability (sample)</span>
-              <span style="font-size:12px;color:#00d4ff;font-weight:700;">{prob}%</span>
-            </div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:18px;font-weight:700;color:#00ff88;">${vol:,}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.4);">est. volume</div>
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1262,16 +1002,14 @@ else:
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 st.markdown("""
-<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.3);font-size:13px;">
-  <div style="font-size:32px;margin-bottom:12px;">🔮</div>
-  <div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.6);margin-bottom:8px;">
-    Polymarket — The World's Largest Prediction Market
+<div style="text-align:center;padding:32px 0;color:rgba(255,255,255,0.28);font-size:12px;">
+  <div style="font-size:26px;margin-bottom:10px;">🔮</div>
+  <div style="font-size:16px;font-weight:700;color:rgba(255,255,255,0.52);margin-bottom:8px;">Polymarket — The World's Largest Prediction Market</div>
+  <div style="margin-bottom:8px;">
+    <strong>Leon Ye</strong> (1616910) &amp; <strong>Ilyos Umurzakov</strong> (1615067)
+    &nbsp;·&nbsp; Supervisor: Prof. James Slawney
+    &nbsp;·&nbsp; Frankfurt University of Applied Sciences &nbsp;·&nbsp; Summer Semester 2026
   </div>
-  <div style="margin-bottom:16px;">
-    Prepared by Leon Ye &amp; Ilyos Umurzakov · Frankfurt University of Applied Sciences · June 2026
-  </div>
-  <div>
-    Sources: CoinDesk · Axios · Fortune · Bloomberg · ICE · CFTC · Poly Syncer · Dune Analytics · Wikipedia
-  </div>
+  <div>Sources: CoinDesk · Axios · Fortune · Bloomberg · ICE · CFTC · Poly Syncer · Dune Analytics · Wikipedia · S&amp;P Global · KPMG</div>
 </div>
 """, unsafe_allow_html=True)
