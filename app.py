@@ -388,7 +388,7 @@ st.plotly_chart(fig_vol, use_container_width=True)
 
 cv1, cv2, cv3 = st.columns(3)
 for col, (num, lbl) in zip([cv1,cv2,cv3], [
-    ("7x","Volume growth Q1 → Q4 2024 (election cycle)"),
+    ("14x","Volume growth Q1 → Q4 2024 (election cycle)"),
     ("$1.75B","Q1 2026 — rising non-election baseline"),
     ("+600%","Non-election baseline growth vs. 2024"),
 ]):
@@ -408,10 +408,9 @@ st.markdown('<div class="section-sub">A marketplace model with exchange economic
 bm1, bm2 = st.columns([1.2, 1])
 with bm1:
     for icon, name, color, share, desc in [
-        ("💸","Transaction Fees","#00d4ff","~70%","A small % fee on every trade. At $1.75B/quarter volume, even a 0.5% take rate implies ~$35M quarterly. Revenue scales directly with platform activity — no marginal cost per additional market."),
-        ("💧","Liquidity Economics","#a78bfa","~15%","Market-making relationships and LP economics. Exchange structure shifts risk to participants rather than onto Polymarket's balance sheet — far more capital-efficient than traditional bookmakers."),
-        ("📊","Data & Institutional API","#00ff88","~10%","Real-time probability feeds sold to media, hedge funds, research firms. CNN, Bloomberg, Reuters already embed Polymarket data. High-margin recurring revenue with low marginal cost."),
-        ("🤝","Sponsored Markets","#ffa502","~5%","Brand and corporate partnerships for market creation. A company could pay to list a market about its product launch or earnings — turning Polymarket into a financial intelligence PR tool."),
+        ("💧","Liquidity Economics","#a78bfa","~50%","Market-making relationships and LP economics. Exchange structure shifts risk to participants rather than onto Polymarket's balance sheet — far more capital-efficient than traditional bookmakers."),
+        ("📊","Data & Institutional API","#00ff88","~30%","Real-time probability feeds sold to media, hedge funds, research firms. CNN, Bloomberg, Reuters already embed Polymarket data. High-margin recurring revenue with low marginal cost."),
+        ("🤝","Sponsored Markets","#ffa502","~20%","Brand and corporate partnerships for market creation. A company could pay to list a market about its product launch or earnings — turning Polymarket into a financial intelligence PR tool."),
     ]:
         st.markdown(f"""
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;">
@@ -428,9 +427,9 @@ with bm1:
 
 with bm2:
     fig_pie = go.Figure(go.Pie(
-        labels=["Transaction Fees","Liquidity Economics","Data Products","Sponsored Markets"],
-        values=[70,15,10,5],
-        marker=dict(colors=["#00d4ff","#a78bfa","#00ff88","#ffa502"],
+        labels=["Liquidity Economics","Data Products","Sponsored Markets"],
+        values=[50,30,20],
+        marker=dict(colors=["#a78bfa","#00ff88","#ffa502"],
                     line=dict(color="#07070f", width=3)),
         hole=0.55,
         textfont=dict(color="white", size=12),
@@ -512,9 +511,9 @@ st.markdown('<div class="section-title">Polymarket vs. The World</div>', unsafe_
 cc1, cc2 = st.columns([1.1, 1])
 with cc1:
     df_comp = pd.DataFrame({
-        "Dimension": ["Regulatory Status","Monthly Volume","Settlement Speed","Active Traders","Media Presence","Valuation","US Access","Growth Profile"],
-        "Polymarket 🔮": ["Crypto-native (CFTC via QCEX)","$2B+/month","2 seconds (on-chain)","445K+ Oct 2025","CNN · FT · Reuters · BBC daily","$9B post-ICE","Re-entered 2025","Viral / exponential"],
-        "Kalshi 🏛️": ["Fully CFTC-regulated","~$200M/month","1–3 business days (banking)","Growing, smaller","Institutional, less viral","~$1B (est.)","Always compliant","Steady / institutional"],
+        "Dimension": ["Regulatory Status","Quarterly Volume","Settlement Speed","Active Traders","Media Presence","Valuation","US Access","Growth Profile"],
+        "Polymarket 🔮": ["Crypto-native (CFTC via QCEX)","$2B+/quarter","2 seconds (on-chain)","445K+ Oct 2025","CNN · FT · Reuters · BBC daily","$9B post-ICE","Re-entered 2025","Viral / exponential"],
+        "Kalshi 🏛️": ["Fully CFTC-regulated","~$600M/quarter","1–3 business days (banking)","Growing, smaller","Institutional, less viral","~$1B (est.)","Always compliant","Steady / institutional"],
     })
     st.dataframe(df_comp, use_container_width=True, hide_index=True, height=320)
 
