@@ -408,9 +408,9 @@ st.markdown('<div class="section-sub">A marketplace model with exchange economic
 bm1, bm2 = st.columns([1.2, 1])
 with bm1:
     for icon, name, color, share, desc in [
-        ("💧","Liquidity Economics","#a78bfa","~50%","Market-making relationships and LP economics. Exchange structure shifts risk to participants rather than onto Polymarket's balance sheet — far more capital-efficient than traditional bookmakers."),
-        ("📊","Data & Institutional API","#00ff88","~30%","Real-time probability feeds sold to media, hedge funds, research firms. CNN, Bloomberg, Reuters already embed Polymarket data. High-margin recurring revenue with low marginal cost."),
-        ("🤝","Sponsored Markets","#ffa502","~20%","Brand and corporate partnerships for market creation. A company could pay to list a market about its product launch or earnings — turning Polymarket into a financial intelligence PR tool."),
+        ("💧","Liquidity Economics","#a78bfa","~85%","Market-making relationships and LP economics. Exchange structure shifts risk to participants rather than onto Polymarket's balance sheet — far more capital-efficient than traditional bookmakers."),
+        ("📊","Data & Institutional API","#00ff88","~10%","Real-time probability feeds sold to media, hedge funds, research firms. CNN, Bloomberg, Reuters already embed Polymarket data. High-margin recurring revenue with low marginal cost."),
+        ("🤝","Sponsored Markets","#ffa502","~5%","Brand and corporate partnerships for market creation. A company could pay to list a market about its product launch or earnings — turning Polymarket into a financial intelligence PR tool."),
     ]:
         st.markdown(f"""
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;">
@@ -428,7 +428,7 @@ with bm1:
 with bm2:
     fig_pie = go.Figure(go.Pie(
         labels=["Liquidity Economics","Data Products","Sponsored Markets"],
-        values=[50,30,20],
+        values=[85,10,5],
         marker=dict(colors=["#a78bfa","#00ff88","#ffa502"],
                     line=dict(color="#07070f", width=3)),
         hole=0.55,
